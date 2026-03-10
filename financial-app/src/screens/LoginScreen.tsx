@@ -39,7 +39,6 @@ export default function LoginScreen({ navigation }: Props) {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // navigation.replace limpa a pilha para o usuário não voltar ao login com o botão "back"
       navigation.replace('Home');
     } catch (error: any) {
       console.error(error.code);
