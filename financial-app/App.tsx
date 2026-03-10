@@ -1,4 +1,4 @@
-import 'react-native-gesture-handler'; // Deve ser a primeira linha
+import 'react-native-gesture-handler';
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { AppRoutes } from './src/navigation';

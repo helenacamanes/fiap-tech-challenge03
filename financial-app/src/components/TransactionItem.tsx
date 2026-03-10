@@ -7,7 +7,6 @@ interface Props {
   data: Transaction;
 }
 
-// Mapa de ícones inteligente
 const getCategoryIcon = (title: string): any => {
   const t = title.toLowerCase();
   if (t.includes('aluguer') || t.includes('casa')) return 'home-outline';
@@ -15,7 +14,7 @@ const getCategoryIcon = (title: string): any => {
   if (t.includes('transporte') || t.includes('uber') || t.includes('combustível')) return 'car-outline';
   if (t.includes('salário') || t.includes('bónus')) return 'cash-outline';
   if (t.includes('saúde') || t.includes('farmácia')) return 'medical-outline';
-  return 'receipt-outline'; // Ícone padrão
+  return 'receipt-outline'; 
 };
 
 export function TransactionItem({ data }: Props) {
