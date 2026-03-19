@@ -37,7 +37,6 @@ export function HomeScreen() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
       
-      {/* Header */}
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>Olá, Helena</Text>
@@ -48,7 +47,6 @@ export function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Balance Card */}
       <View style={styles.balanceCard}>
         <Text style={styles.balanceLabel}>Saldo Total</Text>
         <Text style={styles.balanceValue}>
@@ -67,7 +65,6 @@ export function HomeScreen() {
         </View>
       </View>
 
-      {/* Transactions List */}
       <View style={styles.listSection}>
         <View style={styles.listHeader}>
           <Text style={styles.listTitle}>Atividade Recente</Text>
@@ -85,7 +82,6 @@ export function HomeScreen() {
         />
       </View>
 
-      {/* FAB - Add Transaction */}
       <TouchableOpacity style={styles.fab}>
         <Ionicons name="add" size={32} color="#FFF" />
       </TouchableOpacity>
