@@ -7,7 +7,14 @@ import { useAuth } from "../contexts/AuthContext";
 
 function LoadingScreen() {
   return (
-    <View style={styles.loadingContainer}>
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: "#0A1128",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
       <ActivityIndicator size="large" color="#FFFFFF" />
     </View>
   );
@@ -15,6 +22,8 @@ function LoadingScreen() {
 
 export function AppRoutesContainer() {
   const { initializing, isAuthenticated } = useAuth();
+
+  console.log("AppRoutesContainer", { initializing, isAuthenticated });
 
   if (initializing) {
     return <LoadingScreen />;
