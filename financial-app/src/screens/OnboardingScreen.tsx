@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import {
-    StyleSheet, View, FlatList, TouchableOpacity, Text, SafeAreaView,
+    Image, StyleSheet, View, FlatList, TouchableOpacity, Text, SafeAreaView,
     useWindowDimensions
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -8,32 +8,25 @@ import { RootStackParamList } from '../@types/navigation';
 import OnboardingItem from '../components/OnboardingItem';
 import { darkTheme as COLORS } from '../theme';
 
-import EyeIcon from '../assets/images/eye-icon.png';
-import PigIcon from '../assets/images/pig-icon.png';
-import TargetIcon from '../assets/images/target-icon.png';
-import BlueGradient from '../assets/images/blue-gradient.png';
-import OrangeGradient from '../assets/images/orange-gradient.png';
-import GreenGradient from '../assets/images/green-gradient.png';
-
 const slides = [
     {
         id: '1',
-        image: EyeIcon,
-        gradient: BlueGradient,
+        image: <Image source={require('../../assets/eye.png')} />,
+        // gradient: BlueGradient,
         title: 'Clareza sobre seus gastos',
         description: 'Visualize para onde seu dinheiro está indo com clareza total, como um farol iluminando o oceano.',
     },
     {
         id: '2',
-        image: PigIcon,
-        gradient: OrangeGradient,
+        image: <Image source={require('../../assets/pig.png')} />,
+        // gradient: OrangeGradient,
         title: 'Controle do seu orçamento',
         description: 'Defina limites e acompanhe seus gastos em tempo real. Mantenha-se no rumo certo.',
     },
     {
         id: '3',
-        image: TargetIcon,
-        gradient: GreenGradient,
+        image: <Image source={require('../../assets/target.png')} />,
+        // gradient: GreenGradient,
         title: 'Metas que você consegue enxergar',
         description: 'Estabeleça objetivos financeiros e acompanhe seu progresso. Cada passo iluminado conta.',
     },

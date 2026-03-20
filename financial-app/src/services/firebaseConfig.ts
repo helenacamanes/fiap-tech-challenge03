@@ -1,26 +1,47 @@
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps, getApp } from "firebase/app";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  getAuth,
+  initializeAuth,
+  // @ts-expect-error
+  getReactNativePersistence,
+  type Auth,
+} from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-import { 
-  initializeAuth, 
-  // getReactNativePersistence 
-} from 'firebase/auth';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { env } from "../../config/env";
 
-const firebaseConfig = {
-  apiKey: "SUA_API_KEY",
-  authDomain: "...",
-  projectId: "...",
-  storageBucket: "...",
-  messagingSenderId: "...",
-  appId: "..."
-};
-
-const app = initializeApp(firebaseConfig);
-
-const auth = initializeAuth(app, {
-  // persistence: (getReactNativePersistence as any)(AsyncStorage)
+console.log("Firebase env check", {
+  apiKey: !!env.firebaseApiKey,
+  authDomain: env.firebaseAuthDomain,
+  projectId: env.firebaseProjectId,
+  storageBucket: env.firebaseStorageBucket,
+  messagingSenderId: !!env.firebaseMessagingSenderId,
+  appId: !!env.firebaseAppId,
 });
 
-const db = getFirestore(app);
+const firebaseConfig = {
+  apiKey: env.firebaseApiKey,
+  authDomain: env.firebaseAuthDomain,
+  projectId: env.firebaseProjectId,
+  storageBucket: env.firebaseStorageBucket,
+  messagingSenderId: env.firebaseMessagingSenderId,
+  appId: env.firebaseAppId,
+};
 
-export { auth, db };
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+
+let authInstance: Auth;
+
+try {
+  authInstance = initializeAuth(app, {
+    persistence: getReactNativePersistence(AsyncStorage),
+  });
+  console.log("Firebase auth initialized with RN persistence");
+} catch (error) {
+  console.warn("initializeAuth failed, falling back to getAuth", error);
+  authInstance = getAuth(app);
+}
+
+export const auth = authInstance;
+export const db = getFirestore(app);
+export { app };
