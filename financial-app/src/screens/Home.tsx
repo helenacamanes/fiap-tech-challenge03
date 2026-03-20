@@ -13,7 +13,7 @@ import { TransactionItem } from "../components/TransactionItem";
 import { Transaction } from "../@types/transaction";
 import { exportToPDF } from "../services/exportService";
 
-export function Home() {
+export default function Home() {
   // Dados de exemplo (Mock)
   const [transactions] = useState<Transaction[]>([
     {
