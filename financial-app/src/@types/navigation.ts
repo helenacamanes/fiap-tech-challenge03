@@ -1,10 +1,11 @@
 export type RootStackParamList = {
-  Onboarding: undefined;
-  Login: undefined;
-  Register: undefined;
-  ForgotPassword: undefined;
-  MainTabs: undefined;
   AddTransaction: { type: "income" | "expense" }; // Recebe o tipo como parâmetro
+  ForgotPassword: undefined;
+  Home: undefined;
+  Login: undefined;
+  MainTabs: undefined;
+  Onboarding: undefined;
+  Register: undefined;
 };
 
 export type MainTabParamList = {

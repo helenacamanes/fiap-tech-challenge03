@@ -80,7 +80,6 @@ export default function Home() {
         </TouchableOpacity>
       </View>
 
-      {/* Balance Card */}
       <View style={styles.balanceCard}>
         <Text style={styles.balanceLabel}>Saldo Total</Text>
         <Text style={styles.balanceValue}>
@@ -102,7 +101,6 @@ export default function Home() {
         </View>
       </View>
 
-      {/* Transactions List */}
       <View style={styles.listSection}>
         <View style={styles.listHeader}>
           <Text style={styles.listTitle}>Atividade Recente</Text>
@@ -120,7 +118,6 @@ export default function Home() {
         />
       </View>
 
-      {/* FAB - Add Transaction */}
       <TouchableOpacity style={styles.fab}>
         <Ionicons name="add" size={32} color="#FFF" />
       </TouchableOpacity>
