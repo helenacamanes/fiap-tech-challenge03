@@ -1,12 +1,15 @@
 import "react-native-gesture-handler";
 import React from "react";
 import { AuthProvider } from "./src/contexts/AuthContext";
+import { TransactionProvider } from "./src/contexts/TransactionContext";
 import { AppRoutesContainer } from "./src/routes";
 
 export default function App() {
   return (
     <AuthProvider>
-      <AppRoutesContainer />
+      <TransactionProvider>
+        <AppRoutesContainer />
+      </TransactionProvider> 
     </AuthProvider>
   );
 }

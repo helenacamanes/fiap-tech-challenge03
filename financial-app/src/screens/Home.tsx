@@ -15,40 +15,12 @@ import { exportToPDF } from "../services/exportService";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../@types/navigation";
+import { useTransactions } from "../contexts/TransactionContext";
 
 export default function Home() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   // Dados de exemplo (Mock)
-  const [transactions] = useState<Transaction[]>([
-    {
-      id: "1",
-      title: "Salário Mensal",
-      value: 2500,
-      type: "income",
-      date: new Date(),
-    },
-    {
-      id: "2",
-      title: "Supermercado Continente",
-      value: 85.4,
-      type: "expense",
-      date: new Date(),
-    },
-    {
-      id: "3",
-      title: "Ginásio",
-      value: 35.0,
-      type: "expense",
-      date: new Date(),
-    },
-    {
-      id: "4",
-      title: "Freelance React",
-      value: 450,
-      type: "income",
-      date: new Date(),
-    },
-  ]);
+   const { transactions } = useTransactions();
 
   const totals = useMemo(() => {
     const income = transactions
