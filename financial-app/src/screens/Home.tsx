@@ -12,8 +12,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { TransactionItem } from "../components/TransactionItem";
 import { Transaction } from "../@types/transaction";
 import { exportToPDF } from "../services/exportService";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../@types/navigation";
 
 export default function Home() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   // Dados de exemplo (Mock)
   const [transactions] = useState<Transaction[]>([
     {
@@ -104,7 +108,7 @@ export default function Home() {
       <View style={styles.listSection}>
         <View style={styles.listHeader}>
           <Text style={styles.listTitle}>Atividade Recente</Text>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate("Transactions")}>
             <Text style={styles.seeAll}>Ver tudo</Text>
           </TouchableOpacity>
         </View>

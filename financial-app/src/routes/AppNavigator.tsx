@@ -12,6 +12,7 @@ import Register from "../screens/Register";
 import Home from "../screens/Home";
 import AddTransaction from "../screens/AddTransaction";
 import ForgotPassword from "../screens/ForgotPassword";
+import Transactions from "../screens/Transactions";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -63,6 +64,7 @@ export function AppNavigator() {
         <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
         <Stack.Screen name="Home" component={Home} />
         <Stack.Screen name="AddTransaction" component={AddTransaction} />
+        <Stack.Screen name="Transactions" component={Transactions} />
       </Stack.Navigator>
     </NavigationContainer>
   );
