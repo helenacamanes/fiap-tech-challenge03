@@ -1,6 +1,9 @@
 function required(name: string, value: string | undefined) {
+  console.log(`Verificando ${name}:`, value ? "OK" : "VAZIO");
   if (!value) {
-    throw new Error(`Missing environment variable: ${name}`);
+    console.warn(`⚠️ Warning: Missing env variable ${name}. Firebase features will fail.`);
+    return '';
+    // throw new Error(`Missing environment variable: ${name}`);
   }
 
   return value;

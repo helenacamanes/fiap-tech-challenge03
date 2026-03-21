@@ -1,9 +1,13 @@
-import React from "react";
+import React, { useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
-import { ActivityIndicator, View, StyleSheet } from "react-native";
+import { ActivityIndicator, View } from "react-native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { AuthRoutes } from "./AuthRoutes";
 import { AppRoutes } from "./AppRoutes";
 import { useAuth } from "../contexts/AuthContext";
+import Onboarding from "../screens/Onboarding";
+
+const Stack = createNativeStackNavigator();
 
 function LoadingScreen() {
   return (
@@ -20,10 +24,24 @@ function LoadingScreen() {
   );
 }
 
+// Stack que exibe o Onboarding e depois entrega o controle para AuthRoutes.
+// O navigation.replace('Login') do seu Onboarding.tsx vai funcionar porque
+// 'Login' está registrado aqui como a próxima tela.
+function OnboardingStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Onboarding" component={Onboarding} />
+      <Stack.Screen name="Login" component={AuthRoutes} />
+    </Stack.Navigator>
+  );
+}
+
 export function AppRoutesContainer() {
   const { initializing, isAuthenticated } = useAuth();
 
-  console.log("AppRoutesContainer", { initializing, isAuthenticated });
+  // false = sempre mostra onboarding (modo teste)
+  // Quando quiser persistir, substitua por AsyncStorage (ver comentário abaixo)
+  const [onboardingDone] = useState(false);
 
   if (initializing) {
     return <LoadingScreen />;
@@ -31,16 +49,13 @@ export function AppRoutesContainer() {
 
   return (
     <NavigationContainer>
-      {isAuthenticated ? <AppRoutes /> : <AuthRoutes />}
+      {isAuthenticated ? (
+        <AppRoutes />
+      ) : onboardingDone ? (
+        <AuthRoutes />
+      ) : (
+        <OnboardingStack />
+      )}
     </NavigationContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: "#0A1128",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});

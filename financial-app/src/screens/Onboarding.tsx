@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import {
-    Image, StyleSheet, View, FlatList, TouchableOpacity, Text, SafeAreaView,
+    StyleSheet, View, FlatList, TouchableOpacity, Text, SafeAreaView,
     useWindowDimensions
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -11,21 +11,21 @@ import { darkTheme as COLORS } from '../theme';
 const slides = [
     {
         id: '1',
-        image: <Image source={require('../../assets/eye.png')} />,
+        image: require('../../assets/eye.png'),
         // gradient: BlueGradient,
         title: 'Clareza sobre seus gastos',
         description: 'Visualize para onde seu dinheiro está indo com clareza total, como um farol iluminando o oceano.',
     },
     {
         id: '2',
-        image: <Image source={require('../../assets/pig.png')} />,
+        image: require('../../assets/pig.png'),
         // gradient: OrangeGradient,
         title: 'Controle do seu orçamento',
         description: 'Defina limites e acompanhe seus gastos em tempo real. Mantenha-se no rumo certo.',
     },
     {
         id: '3',
-        image: <Image source={require('../../assets/target.png')} />,
+        image: require('../../assets/target.png'),
         // gradient: GreenGradient,
         title: 'Metas que você consegue enxergar',
         description: 'Estabeleça objetivos financeiros e acompanhe seu progresso. Cada passo iluminado conta.',
@@ -38,7 +38,7 @@ interface Props {
     navigation: NavigationProp;
 }
 
-export default function OnboardingScreen({ navigation }: Props) {
+export default function Onboarding ({ navigation }: Props) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const flatListRef = useRef<FlatList>(null);
     const { width } = useWindowDimensions();
@@ -59,7 +59,7 @@ export default function OnboardingScreen({ navigation }: Props) {
                 renderItem={({ item }) => <OnboardingItem {...item} />}
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                pagingEnabled // Faz as páginas "travar" ao rolar
+                pagingEnabled 
                 keyExtractor={(item) => item.id}
                 onMomentumScrollEnd={(event) => {
                     const contentOffset = event.nativeEvent.contentOffset.x;
@@ -69,7 +69,6 @@ export default function OnboardingScreen({ navigation }: Props) {
             />
 
             <View style={styles.footer}>
-                {/* Indicadores de página (dots) */}
                 <View style={styles.dotsContainer}>
                     {slides.map((_, index) => (
                         <View
@@ -82,7 +81,6 @@ export default function OnboardingScreen({ navigation }: Props) {
                     ))}
                 </View>
 
-                {/* Botões de ação (exatamente 382x48 como na imagem) */}
                 <TouchableOpacity style={styles.button} onPress={handleNext}>
                     <Text style={styles.buttonText}>
                         {currentIndex === slides.length - 1 ? 'Começar' : 'Continuar'}
@@ -92,8 +90,10 @@ export default function OnboardingScreen({ navigation }: Props) {
                 <TouchableOpacity
                     style={styles.linkButton}
                     onPress={() => navigation.navigate('Login')}
+                    
                 >
                     <Text style={styles.linkText}>Já tenho conta</Text>
+                    
                 </TouchableOpacity>
             </View>
         </SafeAreaView>
@@ -101,7 +101,7 @@ export default function OnboardingScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: COLORS.background },
+    container: { backgroundColor: COLORS.background,  minHeight: '100%' },
     footer: { paddingHorizontal: 32, paddingBottom: 40, alignItems: 'center' },
     dotsContainer: { flexDirection: 'row', marginBottom: 32 },
     dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(255, 255, 255, 0.2)', marginRight: 8 },
