@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useMemo } from "react";
 import {
   View,
   Text,
@@ -9,18 +9,16 @@ import {
   StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { TransactionItem } from "../components/TransactionItem";
-import { Transaction } from "../@types/transaction";
-import { exportToPDF } from "../services/exportService";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../@types/navigation";
+import { TransactionItem } from "../components/TransactionItem";
+import { exportToPDF } from "../services/exportService";
 import { useTransactions } from "../contexts/TransactionContext";
+import { RootStackParamList } from "../@types/navigation";
 
 export default function Home() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  // Dados de exemplo (Mock)
-   const { transactions } = useTransactions();
+  const { transactions } = useTransactions();
 
   const totals = useMemo(() => {
     const income = transactions
@@ -29,176 +27,371 @@ export default function Home() {
     const expense = transactions
       .filter((t) => t.type === "expense")
       .reduce((acc, t) => acc + t.value, 0);
-
-    return {
-      total: income - expense,
-      income,
-      expense,
-    };
+    return { total: income - expense, income, expense };
   }, [transactions]);
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(value);
 
   const handleExport = () => {
     exportToPDF(transactions, "Março");
   };
 
+  const savings = totals.income > 0
+    ? ((totals.total / totals.income) * 100).toFixed(0)
+    : "0";
+
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Olá, Helena</Text>
-          <Text style={styles.subtitle}>Lighthouse Finance</Text>
-        </View>
-        <TouchableOpacity onPress={handleExport} style={styles.exportButton}>
-          <Ionicons name="download-outline" size={24} color="#2563EB" />
-        </TouchableOpacity>
-      </View>
+      <FlatList
+        data={transactions.slice(0, 5)}
+        keyExtractor={(item) => item.id}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        ListHeaderComponent={
+          <>
+            <View style={styles.header}>
+              <View>
+                <Text style={styles.greeting}>Boa noite, Larissa</Text>
+                <View style={styles.balanceRow}>
+                  <Ionicons name="eye-outline" size={13} color="#64748B" style={{ marginRight: 4 }} />
+                  <Text style={styles.balanceSubtitle}>Saldo disponível</Text>
+                </View>
+                <Text style={styles.balanceValue}>{formatCurrency(totals.total)}</Text>
+              </View>
+              <TouchableOpacity style={styles.avatarBtn}>
+                <Ionicons name="person" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
 
-      <View style={styles.balanceCard}>
-        <Text style={styles.balanceLabel}>Saldo Total</Text>
-        <Text style={styles.balanceValue}>
-          {new Intl.NumberFormat("pt-PT", {
-            style: "currency",
-            currency: "EUR",
-          }).format(totals.total)}
-        </Text>
+            <View style={styles.actionRow}>
+              <TouchableOpacity style={styles.actionBtn}>
+                <Ionicons name="add" size={22} color="#FFFFFF" />
+                <Text style={styles.actionLabel}>Adicionar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.actionBtn} onPress={handleExport}>
+                <Ionicons name="document-text-outline" size={22} color="#FFFFFF" />
+                <Text style={styles.actionLabel}>Relatórios</Text>
+              </TouchableOpacity>
+            </View>
 
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <Ionicons name="arrow-up-circle" size={20} color="#BBF7D0" />
-            <Text style={styles.statValue}>€{totals.income.toFixed(2)}</Text>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Visão do mês</Text>
+
+              <View style={styles.statsGrid}>
+                <View style={styles.statCard}>
+                  <Text style={styles.statCardLabel}>Gastos</Text>
+                  <Text style={[styles.statCardValue, { color: "#F87171" }]}>
+                    {formatCurrency(totals.expense)}
+                  </Text>
+                  <View style={styles.statTrend}>
+                    <Ionicons name="arrow-up" size={11} color="#F87171" />
+                    <Text style={[styles.statTrendText, { color: "#F87171" }]}>
+                      12% vs mês anterior
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.statCard}>
+                  <Text style={styles.statCardLabel}>Receitas</Text>
+                  <Text style={[styles.statCardValue, { color: "#4ADE80" }]}>
+                    {formatCurrency(totals.income)}
+                  </Text>
+                  <View style={styles.statTrend}>
+                    <Ionicons name="arrow-up" size={11} color="#4ADE80" />
+                    <Text style={[styles.statTrendText, { color: "#4ADE80" }]}>
+                      0% vs mês anterior
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.savingsCard}>
+                <Text style={styles.statCardLabel}>Economia</Text>
+                <Text style={[styles.statCardValue, { color: "#4ADE80", fontSize: 22 }]}>
+                  {formatCurrency(totals.total)}
+                </Text>
+                <View style={styles.statTrend}>
+                  <Ionicons name="arrow-up" size={11} color="#4ADE80" />
+                  <Text style={[styles.statTrendText, { color: "#4ADE80" }]}>
+                    {savings}% vs mês anterior
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.listHeader}>
+              <Text style={styles.sectionTitle}>Transações recentes</Text>
+              <TouchableOpacity onPress={() => navigation.navigate("Transactions")}>
+                <Text style={styles.seeAll}>Ver todas</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        }
+        renderItem={({ item }) => (
+          <View style={styles.transactionRow}>
+            <View style={styles.iconWrapper}>
+              <Ionicons
+                name={
+                  item.type === "income"
+                    ? "briefcase-outline"
+                    : getCategoryIcon(item.title)
+                }
+                size={20}
+                color={item.type === "income" ? "#4ADE80" : "#94A3B8"}
+              />
+            </View>
+
+            <View style={styles.transactionInfo}>
+              <Text style={styles.transactionTitle}>{item.title}</Text>
+              <Text style={styles.transactionTime}>
+                {getRelativeDate(item.date)}
+              </Text>
+            </View>
+
+            <Text
+              style={[
+                styles.transactionValue,
+                item.type === "income" ? styles.valueIncome : styles.valueExpense,
+              ]}
+            >
+              {item.type === "income" ? "+ " : "- "}
+              {formatCurrency(item.value)}
+            </Text>
           </View>
-          <View style={styles.statItem}>
-            <Ionicons name="arrow-down-circle" size={20} color="#FECACA" />
-            <Text style={styles.statValue}>€{totals.expense.toFixed(2)}</Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.listSection}>
-        <View style={styles.listHeader}>
-          <Text style={styles.listTitle}>Atividade Recente</Text>
-          <TouchableOpacity onPress={() => navigation.navigate("Transactions")}>
-            <Text style={styles.seeAll}>Ver tudo</Text>
-          </TouchableOpacity>
-        </View>
-
-        <FlatList
-          data={transactions}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <TransactionItem data={item} />}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 20 }}
-        />
-      </View>
-
-      <TouchableOpacity style={styles.fab}>
-        <Ionicons name="add" size={32} color="#FFF" />
-      </TouchableOpacity>
+        )}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        ListFooterComponent={<View style={{ height: 100 }} />}
+      />
     </SafeAreaView>
   );
+}
+
+function getCategoryIcon(title: string): any {
+  const t = title.toLowerCase();
+  if (t.includes("mercado") || t.includes("supermercado")) return "cart-outline";
+  if (t.includes("uber") || t.includes("taxi")) return "car-outline";
+  if (t.includes("netflix") || t.includes("spotify")) return "play-circle-outline";
+  if (t.includes("ifood") || t.includes("restaurante")) return "fast-food-outline";
+  if (t.includes("farmácia") || t.includes("farmacia")) return "medkit-outline";
+  if (t.includes("ginásio") || t.includes("academia")) return "barbell-outline";
+  return "receipt-outline";
+}
+
+function getRelativeDate(date: Date): string {
+  const d = new Date(date);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  const timeStr = d.toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  if (diffDays === 0) return `Hoje, ${timeStr}`;
+  if (diffDays === 1) return `Ontem, ${timeStr}`;
+  return `${diffDays} dias atrás`;
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: "#0F172A",
   },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 20,
+  },
+
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 24,
-    paddingTop: 20,
+    alignItems: "flex-start",
     marginBottom: 24,
   },
   greeting: {
     fontSize: 20,
-    fontWeight: "bold",
-    color: "#111827",
+    fontWeight: "700",
+    color: "#F1F5F9",
+    marginBottom: 4,
   },
-  subtitle: {
-    fontSize: 14,
-    color: "#6B7280",
-  },
-  exportButton: {
-    padding: 10,
-    backgroundColor: "#EFF6FF",
-    borderRadius: 12,
-  },
-  balanceCard: {
-    marginHorizontal: 24,
-    padding: 24,
-    backgroundColor: "#2563EB",
-    borderRadius: 24,
-    shadowColor: "#2563EB",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  balanceLabel: {
-    color: "#BFDBFE",
-    fontSize: 14,
-  },
-  balanceValue: {
-    color: "#FFFFFF",
-    fontSize: 32,
-    fontWeight: "bold",
-    marginVertical: 8,
-  },
-  statsContainer: {
-    flexDirection: "row",
-    marginTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.1)",
-    paddingTop: 16,
-  },
-  statItem: {
+  balanceRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginRight: 24,
+    marginBottom: 4,
   },
-  statValue: {
-    color: "#FFFFFF",
-    marginLeft: 6,
-    fontWeight: "600",
+  balanceSubtitle: {
+    fontSize: 12,
+    color: "#64748B",
   },
-  listSection: {
+  balanceValue: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: "#F1F5F9",
+    letterSpacing: -0.5,
+  },
+  avatarBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#2563EB",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  actionRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 24,
+  },
+  actionBtn: {
     flex: 1,
-    marginTop: 32,
-    paddingHorizontal: 24,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#1E293B",
+    borderRadius: 12,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: "#334155",
   },
+  actionLabel: {
+    color: "#E2E8F0",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#F1F5F9",
+    marginBottom: 12,
+  },
+
+  statsGrid: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 12,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: "#1E293B",
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#334155",
+  },
+  savingsCard: {
+    backgroundColor: "#1E293B",
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#334155",
+  },
+  statCardLabel: {
+    fontSize: 12,
+    color: "#64748B",
+    marginBottom: 4,
+  },
+  statCardValue: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#F1F5F9",
+    marginBottom: 4,
+  },
+  statTrend: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+  },
+  statTrendText: {
+    fontSize: 11,
+    fontWeight: "500",
+  },
+
   listHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
-  },
-  listTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#1F2937",
+    marginBottom: 12,
   },
   seeAll: {
     color: "#2563EB",
     fontWeight: "600",
+    fontSize: 13,
   },
+
+  transactionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1E293B",
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#334155",
+  },
+  iconWrapper: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#0F172A",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: "#334155",
+  },
+  transactionInfo: {
+    flex: 1,
+  },
+  transactionTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#E2E8F0",
+    marginBottom: 3,
+  },
+  transactionTime: {
+    fontSize: 12,
+    color: "#64748B",
+  },
+  transactionValue: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  valueIncome: {
+    color: "#4ADE80",
+  },
+  valueExpense: {
+    color: "#F87171",
+  },
+  separator: {
+    height: 8,
+  },
+
   fab: {
     position: "absolute",
     bottom: 30,
-    right: 30,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: "#2563EB",
     justifyContent: "center",
     alignItems: "center",
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
+    elevation: 6,
+    shadowColor: "#2563EB",
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
   },
 });
