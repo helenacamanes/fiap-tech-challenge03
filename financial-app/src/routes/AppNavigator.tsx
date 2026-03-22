@@ -13,6 +13,7 @@ import Home from "../screens/Home";
 import AddTransaction from "../screens/AddTransaction";
 import ForgotPassword from "../screens/ForgotPassword";
 import Transactions from "../screens/Transactions";
+import Goals from "../screens/Goals";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -25,7 +26,7 @@ export function AppNavigator() {
         await AsyncStorage.removeItem("@lighthouse:alreadyLaunched");
 
         const hasLaunched = await AsyncStorage.getItem("@lighthouse:alreadyLaunched");
-        
+
         if (hasLaunched === null) {
           setIsFirstLaunch(true);
         } else {
@@ -65,6 +66,12 @@ export function AppNavigator() {
         <Stack.Screen name="Home" component={Home} />
         <Stack.Screen name="AddTransaction" component={AddTransaction} />
         <Stack.Screen name="Transactions" component={Transactions} />
+        <Stack.Screen name="AddGoal" component={Goals}
+          options={{
+            presentation: "transparentModal",
+            animation: "slide_from_bottom",
+          }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

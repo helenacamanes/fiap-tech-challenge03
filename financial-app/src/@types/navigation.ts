@@ -7,6 +7,7 @@ export type RootStackParamList = {
   Onboarding: undefined;
   Register: undefined;
   Transactions: undefined;
+  AddGoal: undefined;
 };
 
 export type MainTabParamList = {
