@@ -3,12 +3,16 @@ import { Transaction } from "../@types/transaction";
 
 type TransactionContextData = {
   transactions: Transaction[];
+  addTransaction: (transaction: Omit<Transaction, "id">) => void;
+  removeTransaction: (id: string) => void;
 };
 
-const TransactionContext = createContext<TransactionContextData>({} as TransactionContextData);
+const TransactionContext = createContext<TransactionContextData>(
+  {} as TransactionContextData
+);
 
 export function TransactionProvider({ children }: { children: React.ReactNode }) {
-  const [transactions] = useState<Transaction[]>([
+  const [transactions, setTransactions] = useState<Transaction[]>([
     {
       id: "1",
       title: "Salário Mensal",
@@ -39,8 +43,24 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
     },
   ]);
 
+  function addTransaction(transaction: Omit<Transaction, "id">) {
+    setTransactions((prev) => [
+      {
+        ...transaction,
+        id: Date.now().toString(),
+      },
+      ...prev,
+    ]);
+  }
+
+  function removeTransaction(id: string) {
+    setTransactions((prev) => prev.filter((t) => t.id !== id));
+  }
+
   return (
-    <TransactionContext.Provider value={{ transactions }}>
+    <TransactionContext.Provider
+      value={{ transactions, addTransaction, removeTransaction }}
+    >
       {children}
     </TransactionContext.Provider>
   );

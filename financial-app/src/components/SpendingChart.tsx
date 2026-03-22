@@ -10,7 +10,6 @@ interface Props {
 
 export default function SpendingChart({ transactions }: Props) {
   const chartData = useMemo(() => {
-    // Filtra apenas despesas e agrupa por ícone (como representação de categoria)
     const expenses = transactions.filter(t => t.type === 'expense');
     
     const categories: { [key: string]: number } = {};
@@ -42,7 +41,7 @@ export default function SpendingChart({ transactions }: Props) {
         accessor={"population"}
         backgroundColor={"transparent"}
         paddingLeft={"15"}
-        absolute // Mostra valores absolutos em vez de porcentagem
+        absolute
       />
     </View>
   );

@@ -73,7 +73,8 @@ export default function Home() {
             </View>
 
             <View style={styles.actionRow}>
-              <TouchableOpacity style={styles.actionBtn}>
+              <TouchableOpacity onPress={() => navigation.navigate("AddTransaction", { type: "expense" })}
+                style={styles.actionBtn}>
                 <Ionicons name="add" size={22} color="#FFFFFF" />
                 <Text style={styles.actionLabel}>Adicionar</Text>
               </TouchableOpacity>

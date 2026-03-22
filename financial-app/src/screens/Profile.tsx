@@ -21,7 +21,7 @@ export default function Profile() {
 
   const totalTransactions = transactions.length;
   const activeGoals = goals.filter((g) => g.current < g.target).length;
-  const daysOfUse = 45; // mock — pode vir do AuthContext depois
+  const daysOfUse = 45;
 
   function handleLogout() {
     Alert.alert("Sair da conta", "Tens a certeza que queres sair?", [

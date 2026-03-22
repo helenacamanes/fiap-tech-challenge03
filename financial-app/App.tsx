@@ -9,9 +9,9 @@ export default function App() {
   return (
     <AuthProvider>
       <TransactionProvider>
-        <GoalsProvider>        {/* 👈 */}
+        <GoalsProvider>
           <AppRoutesContainer />
-        </GoalsProvider>       {/* 👈 */}
+        </GoalsProvider>
       </TransactionProvider>
     </AuthProvider>
   );

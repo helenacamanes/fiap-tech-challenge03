@@ -1,8 +1,8 @@
-export interface Transaction {
+export type Transaction = {
   id: string;
   title: string;
   value: number;
+  type: "income" | "expense";
   date: Date;
-  type: 'income' | 'expense';
-  category?: string;
-}
+  description?: string;
+};

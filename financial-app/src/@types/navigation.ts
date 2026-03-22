@@ -1,5 +1,5 @@
 export type RootStackParamList = {
-  AddTransaction: { type: "income" | "expense" }; // Recebe o tipo como parâmetro
+  AddTransaction: { type: "income" | "expense" }; 
   ForgotPassword: undefined;
   Home: undefined;
   Login: undefined;

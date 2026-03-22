@@ -16,14 +16,12 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useGoals, Goal } from "../contexts/GoalsContext";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
 const getPercent = (current: number, target: number) =>
   Math.min(Math.round((current / target) * 100), 100);
 
-// ─── Add Goal Sheet ───────────────────────────────────────────────────────────
 function AddGoalSheet({ onClose }: { onClose: () => void }) {
   const { addGoal } = useGoals();
   const [title, setTitle] = useState("");
@@ -117,7 +115,6 @@ function AddGoalSheet({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ─── Goal Card ────────────────────────────────────────────────────────────────
 function GoalCard({ goal, onAdd }: { goal: Goal; onAdd: (goal: Goal) => void }) {
   const percent = getPercent(goal.current, goal.target);
   const remaining = goal.target - goal.current;
@@ -168,16 +165,13 @@ function GoalCard({ goal, onAdd }: { goal: Goal; onAdd: (goal: Goal) => void }) 
   );
 }
 
-// ─── Main Screen ─────────────────────────────────────────────────────────────
 export default function Goals() {
   const { goals, addValueToGoal } = useGoals();
 
-  // Add value modal
   const [addModal, setAddModal] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [addValue, setAddValue] = useState("");
 
-  // New goal modal
   const [newGoalModal, setNewGoalModal] = useState(false);
 
   function handleOpenAdd(goal: Goal) {
@@ -331,7 +325,6 @@ export default function Goals() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -359,7 +352,6 @@ const styles = StyleSheet.create({
     color: "#64748B",
   },
 
-  // Card
   card: {
     backgroundColor: "#1E293B",
     borderRadius: 16,
@@ -401,7 +393,6 @@ const styles = StyleSheet.create({
     color: "#64748B",
   },
 
-  // Progress
   progressTrack: {
     height: 6,
     backgroundColor: "#334155",
@@ -427,7 +418,6 @@ const styles = StyleSheet.create({
     color: "#64748B",
   },
 
-  // Add button
   addBtn: {
     backgroundColor: "#0F172A",
     borderRadius: 10,
@@ -442,7 +432,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 
-  // Create button
   createBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -457,7 +446,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
 
-  // Modal shared
   modalOverlay: {
     flex: 1,
     justifyContent: "flex-end",

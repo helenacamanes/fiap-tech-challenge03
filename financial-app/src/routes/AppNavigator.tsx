@@ -42,7 +42,6 @@ export function AppNavigator() {
     checkFirstLaunch();
   }, []);
 
-  // Enquanto o AsyncStorage é lido, exibimos um carregamento
   if (isFirstLaunch === null) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#0A1128" }}>
@@ -54,11 +53,10 @@ export function AppNavigator() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        // Define a rota inicial baseada na persistência de dados
         initialRouteName={isFirstLaunch ? "Onboarding" : "Login"}
         screenOptions={{
           headerShown: false,
-          animation: "slide_from_right", // Transição fluida para o onboarding
+          animation: "slide_from_right",
         }}
       >
         <Stack.Screen name="Onboarding" component={Onboarding} />

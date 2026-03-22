@@ -12,21 +12,18 @@ const slides = [
     {
         id: '1',
         image: require('../../assets/eye.png'),
-        // gradient: BlueGradient,
         title: 'Clareza sobre seus gastos',
         description: 'Visualize para onde seu dinheiro está indo com clareza total, como um farol iluminando o oceano.',
     },
     {
         id: '2',
         image: require('../../assets/pig.png'),
-        // gradient: OrangeGradient,
         title: 'Controle do seu orçamento',
         description: 'Defina limites e acompanhe seus gastos em tempo real. Mantenha-se no rumo certo.',
     },
     {
         id: '3',
         image: require('../../assets/target.png'),
-        // gradient: GreenGradient,
         title: 'Metas que você consegue enxergar',
         description: 'Estabeleça objetivos financeiros e acompanhe seu progresso. Cada passo iluminado conta.',
     },
@@ -43,12 +40,11 @@ export default function Onboarding ({ navigation }: Props) {
     const flatListRef = useRef<FlatList>(null);
     const { width } = useWindowDimensions();
 
-    // Avança para o próximo slide ou para o Login
     const handleNext = () => {
         if (currentIndex < slides.length - 1) {
             flatListRef.current?.scrollToIndex({ index: currentIndex + 1 });
         } else {
-            navigation.replace('Login'); // Usamos replace para o usuário não voltar ao onboarding
+            navigation.replace('Login');
         }
     };
 

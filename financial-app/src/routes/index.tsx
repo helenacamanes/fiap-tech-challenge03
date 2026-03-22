@@ -24,9 +24,6 @@ function LoadingScreen() {
   );
 }
 
-// Stack que exibe o Onboarding e depois entrega o controle para AuthRoutes.
-// O navigation.replace('Login') do seu Onboarding.tsx vai funcionar porque
-// 'Login' está registrado aqui como a próxima tela.
 function OnboardingStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -39,8 +36,6 @@ function OnboardingStack() {
 export function AppRoutesContainer() {
   const { initializing, isAuthenticated } = useAuth();
 
-  // false = sempre mostra onboarding (modo teste)
-  // Quando quiser persistir, substitua por AsyncStorage (ver comentário abaixo)
   const [onboardingDone] = useState(false);
 
   if (initializing) {
