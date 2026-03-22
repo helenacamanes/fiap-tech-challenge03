@@ -14,6 +14,9 @@ import AddTransaction from "../screens/AddTransaction";
 import ForgotPassword from "../screens/ForgotPassword";
 import Transactions from "../screens/Transactions";
 import Goals from "../screens/Goals";
+import Profile from "../screens/Profile";
+
+
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -72,6 +75,7 @@ export function AppNavigator() {
             animation: "slide_from_bottom",
           }}
         />
+        <Stack.Screen name="Profile" component={Profile} />
       </Stack.Navigator>
     </NavigationContainer>
   );

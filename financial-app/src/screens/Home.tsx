@@ -64,7 +64,10 @@ export default function Home() {
                 </View>
                 <Text style={styles.balanceValue}>{formatCurrency(totals.total)}</Text>
               </View>
-              <TouchableOpacity style={styles.avatarBtn}>
+              <TouchableOpacity
+                style={styles.avatarBtn}
+                onPress={() => navigation.navigate("Profile")}
+              >
                 <Ionicons name="person" size={20} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
