@@ -3,7 +3,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   getAuth,
   initializeAuth,
-  // @ts-expect-error
   getReactNativePersistence,
   type Auth,
 } from "firebase/auth";

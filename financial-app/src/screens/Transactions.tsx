@@ -76,7 +76,6 @@ export default function Transactions() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* ── Header ── */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color="#E2E8F0" />
@@ -85,11 +84,9 @@ export default function Transactions() {
         <View style={{ width: 36 }} />
       </View>
 
-      {/* ── Summary Card ── */}
       <View style={styles.summaryCard}>
         <Text style={styles.summaryCardTitle}>Transações</Text>
 
-        {/* Search */}
         <View style={styles.searchRow}>
           <Ionicons name="search-outline" size={16} color="#64748B" style={{ marginRight: 8 }} />
           <TextInput
@@ -101,7 +98,6 @@ export default function Transactions() {
           />
         </View>
 
-        {/* Period Filter */}
         <View style={styles.filterRow}>
           {PERIODS.map((p) => (
             <TouchableOpacity
@@ -119,7 +115,6 @@ export default function Transactions() {
           </TouchableOpacity>
         </View>
 
-        {/* Totals Row */}
         <View style={styles.totalsRow}>
           <View>
             <Text style={styles.totalLabel}>Total do mês</Text>
@@ -146,7 +141,6 @@ export default function Transactions() {
         </View>
       </View>
 
-      {/* ── Grouped List ── */}
       <FlatList
         data={grouped}
         keyExtractor={(item) => item.title}
@@ -159,7 +153,6 @@ export default function Transactions() {
               {group.data.map((t: any, index: number) => (
                 <View key={t.id}>
                   <View style={styles.transactionRow}>
-                    {/* Icon */}
                     <View style={styles.iconWrapper}>
                       <Ionicons
                         name={
@@ -172,7 +165,6 @@ export default function Transactions() {
                       />
                     </View>
 
-                    {/* Info */}
                     <View style={styles.transactionInfo}>
                       <Text style={styles.transactionTitle}>{t.title}</Text>
                       <Text style={styles.transactionTime}>
@@ -183,7 +175,6 @@ export default function Transactions() {
                       </Text>
                     </View>
 
-                    {/* Value */}
                     <Text
                       style={[
                         styles.transactionValue,
@@ -197,7 +188,6 @@ export default function Transactions() {
                     </Text>
                   </View>
 
-                  {/* Divider */}
                   {index < group.data.length - 1 && (
                     <View style={styles.divider} />
                   )}

@@ -22,20 +22,24 @@ export function MainTabs() {
           paddingTop: 8,
           paddingBottom: 8,
         },
-        tabBarActiveTintColor: "#FFFFFF",
+        tabBarActiveTintColor: "#F59E0B",
         tabBarInactiveTintColor: "#7C8DB5",
         tabBarLabelStyle: {
           fontSize: 11,
           marginTop: 4,
         },
-        tabBarIcon: ({ color, size }) => {
+        tabBarIcon: ({ color, size, focused }) => {
           let iconName: React.ComponentProps<typeof Ionicons>["name"] =
             "home-outline";
 
-          if (route.name === "Home") iconName = "home-outline";
-          if (route.name === "Transactions") iconName = "list-outline";
-          if (route.name === "Goals") iconName = "flag-outline";
-          if (route.name === "Profile") iconName = "person-outline";
+          if (route.name === "Home")
+            iconName = focused ? "home" : "home-outline";
+          if (route.name === "Transactions")
+            iconName = focused ? "list" : "list-outline";
+          if (route.name === "Goals")
+            iconName = focused ? "flag" : "flag-outline";
+          if (route.name === "Profile")
+            iconName = focused ? "person" : "person-outline";
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState } from "react";
+import { notifyGoalReached } from "../services/notificationService";
 
 export type Goal = {
   id: string;
@@ -55,11 +56,14 @@ export function GoalsProvider({ children }: { children: React.ReactNode }) {
 
   function addValueToGoal(goalId: string, amount: number) {
     setGoals((prev) =>
-      prev.map((g) =>
-        g.id === goalId
-          ? { ...g, current: Math.min(g.current + amount, g.target) }
-          : g
-      )
+      prev.map((g) => {
+        if (g.id !== goalId) return g;
+        const newCurrent = Math.min(g.current + amount, g.target);
+        if (newCurrent >= g.target) {
+          notifyGoalReached(g.title);
+        }
+        return { ...g, current: newCurrent };
+      })
     );
   }
 

@@ -49,7 +49,6 @@ function AddGoalSheet({ onClose }: { onClose: () => void }) {
     <View style={styles.modalSheet}>
       <View style={styles.modalHandle} />
 
-      {/* Header */}
       <View style={styles.modalHeader}>
         <Text style={styles.modalTitle}>Nova meta</Text>
         <TouchableOpacity style={styles.modalCloseBtn} onPress={onClose}>
@@ -61,7 +60,6 @@ function AddGoalSheet({ onClose }: { onClose: () => void }) {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Nome da meta */}
         <Text style={styles.fieldLabel}>Nome da meta</Text>
         <TextInput
           style={styles.modalInput}
@@ -72,7 +70,6 @@ function AddGoalSheet({ onClose }: { onClose: () => void }) {
           autoFocus
         />
 
-        {/* Valor alvo */}
         <Text style={styles.fieldLabel}>Valor alvo</Text>
         <TextInput
           style={styles.modalInput}
@@ -83,7 +80,6 @@ function AddGoalSheet({ onClose }: { onClose: () => void }) {
           onChangeText={setTarget}
         />
 
-        {/* Valor inicial */}
         <Text style={styles.fieldLabel}>Valor inicial (opcional)</Text>
         <TextInput
           style={styles.modalInput}
@@ -94,7 +90,6 @@ function AddGoalSheet({ onClose }: { onClose: () => void }) {
           onChangeText={setInitial}
         />
 
-        {/* Actions */}
         <View style={styles.modalActions}>
           <TouchableOpacity style={styles.modalCancelBtn} onPress={onClose}>
             <Text style={styles.modalCancelText}>Cancelar</Text>
@@ -220,7 +215,6 @@ export default function Goals() {
         }
       />
 
-      {/* ── Add Value Modal ── */}
       <Modal visible={addModal} transparent animationType="slide">
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -249,7 +243,6 @@ export default function Goals() {
               </TouchableOpacity>
             </View>
 
-            {/* Progress preview */}
             {selectedGoal && (
               <View style={{ marginBottom: 16 }}>
                 <View style={styles.progressTrack}>
@@ -307,7 +300,6 @@ export default function Goals() {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* ── New Goal Modal ── */}
       <Modal visible={newGoalModal} transparent animationType="slide">
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
