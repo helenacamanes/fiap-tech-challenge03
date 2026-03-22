@@ -11,12 +11,10 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useGoals, Goal } from "../contexts/GoalsContext";
-import { RootStackParamList } from "../@types/navigation";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const formatCurrency = (value: number) =>
@@ -24,6 +22,100 @@ const formatCurrency = (value: number) =>
 
 const getPercent = (current: number, target: number) =>
   Math.min(Math.round((current / target) * 100), 100);
+
+// ─── Add Goal Sheet ───────────────────────────────────────────────────────────
+function AddGoalSheet({ onClose }: { onClose: () => void }) {
+  const { addGoal } = useGoals();
+  const [title, setTitle] = useState("");
+  const [target, setTarget] = useState("");
+  const [initial, setInitial] = useState("");
+
+  const isValid = title.trim().length > 0 && target.trim().length > 0;
+
+  function handleCreate() {
+    const targetValue = parseFloat(target.replace(",", "."));
+    const initialValue = parseFloat(initial.replace(",", ".")) || 0;
+    if (!isValid || isNaN(targetValue) || targetValue <= 0) return;
+
+    addGoal({
+      title: title.trim(),
+      target: targetValue,
+      current: initialValue,
+      icon: "star-outline",
+      color: "#3B82F6",
+    });
+    onClose();
+  }
+
+  return (
+    <View style={styles.modalSheet}>
+      <View style={styles.modalHandle} />
+
+      {/* Header */}
+      <View style={styles.modalHeader}>
+        <Text style={styles.modalTitle}>Nova meta</Text>
+        <TouchableOpacity style={styles.modalCloseBtn} onPress={onClose}>
+          <Ionicons name="close" size={18} color="#94A3B8" />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Nome da meta */}
+        <Text style={styles.fieldLabel}>Nome da meta</Text>
+        <TextInput
+          style={styles.modalInput}
+          placeholder="Ex: Viagem dos sonhos"
+          placeholderTextColor="#475569"
+          value={title}
+          onChangeText={setTitle}
+          autoFocus
+        />
+
+        {/* Valor alvo */}
+        <Text style={styles.fieldLabel}>Valor alvo</Text>
+        <TextInput
+          style={styles.modalInput}
+          placeholder="Ex: 10000"
+          placeholderTextColor="#475569"
+          keyboardType="numeric"
+          value={target}
+          onChangeText={setTarget}
+        />
+
+        {/* Valor inicial */}
+        <Text style={styles.fieldLabel}>Valor inicial (opcional)</Text>
+        <TextInput
+          style={styles.modalInput}
+          placeholder="Quanto você já tem?"
+          placeholderTextColor="#475569"
+          keyboardType="numeric"
+          value={initial}
+          onChangeText={setInitial}
+        />
+
+        {/* Actions */}
+        <View style={styles.modalActions}>
+          <TouchableOpacity style={styles.modalCancelBtn} onPress={onClose}>
+            <Text style={styles.modalCancelText}>Cancelar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.modalConfirmBtn,
+              !isValid && styles.modalConfirmBtnDisabled,
+            ]}
+            onPress={handleCreate}
+            disabled={!isValid}
+          >
+            <Text style={styles.modalConfirmText}>Criar meta</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
 
 // ─── Goal Card ────────────────────────────────────────────────────────────────
 function GoalCard({ goal, onAdd }: { goal: Goal; onAdd: (goal: Goal) => void }) {
@@ -61,7 +153,9 @@ function GoalCard({ goal, onAdd }: { goal: Goal; onAdd: (goal: Goal) => void }) 
         {remaining > 0 ? (
           <Text style={styles.remainingText}>Faltam {formatCurrency(remaining)}</Text>
         ) : (
-          <Text style={[styles.remainingText, { color: "#4ADE80" }]}>🎉 Meta atingida!</Text>
+          <Text style={[styles.remainingText, { color: "#4ADE80" }]}>
+            🎉 Meta atingida!
+          </Text>
         )}
       </View>
 
@@ -76,12 +170,15 @@ function GoalCard({ goal, onAdd }: { goal: Goal; onAdd: (goal: Goal) => void }) 
 
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 export default function Goals() {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { goals, addValueToGoal } = useGoals();
 
+  // Add value modal
   const [addModal, setAddModal] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [addValue, setAddValue] = useState("");
+
+  // New goal modal
+  const [newGoalModal, setNewGoalModal] = useState(false);
 
   function handleOpenAdd(goal: Goal) {
     setSelectedGoal(goal);
@@ -121,7 +218,7 @@ export default function Goals() {
         ListFooterComponent={
           <TouchableOpacity
             style={styles.createBtn}
-            onPress={() => navigation.navigate("AddGoal")}
+            onPress={() => setNewGoalModal(true)}
           >
             <Ionicons name="add" size={18} color="#2563EB" />
             <Text style={styles.createBtnText}>Criar nova meta</Text>
@@ -160,7 +257,7 @@ export default function Goals() {
 
             {/* Progress preview */}
             {selectedGoal && (
-              <View style={styles.modalPreview}>
+              <View style={{ marginBottom: 16 }}>
                 <View style={styles.progressTrack}>
                   <View
                     style={[
@@ -203,7 +300,8 @@ export default function Goals() {
               <TouchableOpacity
                 style={[
                   styles.modalConfirmBtn,
-                  (!addValue || parseFloat(addValue) <= 0) && styles.modalConfirmBtnDisabled,
+                  (!addValue || parseFloat(addValue) <= 0) &&
+                    styles.modalConfirmBtnDisabled,
                 ]}
                 onPress={handleConfirmAdd}
                 disabled={!addValue || parseFloat(addValue) <= 0}
@@ -212,6 +310,21 @@ export default function Goals() {
               </TouchableOpacity>
             </View>
           </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* ── New Goal Modal ── */}
+      <Modal visible={newGoalModal} transparent animationType="slide">
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalOverlay}
+        >
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => setNewGoalModal(false)}
+          />
+          <AddGoalSheet onClose={() => setNewGoalModal(false)} />
         </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
@@ -245,6 +358,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#64748B",
   },
+
+  // Card
   card: {
     backgroundColor: "#1E293B",
     borderRadius: 16,
@@ -285,6 +400,8 @@ const styles = StyleSheet.create({
     fontWeight: "400",
     color: "#64748B",
   },
+
+  // Progress
   progressTrack: {
     height: 6,
     backgroundColor: "#334155",
@@ -309,6 +426,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#64748B",
   },
+
+  // Add button
   addBtn: {
     backgroundColor: "#0F172A",
     borderRadius: 10,
@@ -322,6 +441,8 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 14,
   },
+
+  // Create button
   createBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -335,6 +456,8 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 15,
   },
+
+  // Modal shared
   modalOverlay: {
     flex: 1,
     justifyContent: "flex-end",
@@ -384,8 +507,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  modalPreview: {
-    marginBottom: 16,
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#94A3B8",
+    marginBottom: 8,
+    marginTop: 12,
   },
   modalInput: {
     backgroundColor: "#0F172A",
@@ -396,11 +523,12 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     color: "#F1F5F9",
     fontSize: 15,
-    marginBottom: 20,
+    marginBottom: 4,
   },
   modalActions: {
     flexDirection: "row",
     gap: 10,
+    marginTop: 20,
   },
   modalCancelBtn: {
     flex: 1,

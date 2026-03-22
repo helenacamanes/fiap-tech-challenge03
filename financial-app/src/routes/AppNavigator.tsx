@@ -17,7 +17,6 @@ import Goals from "../screens/Goals";
 import Profile from "../screens/Profile";
 
 
-
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function AppNavigator() {
