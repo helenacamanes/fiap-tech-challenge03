@@ -78,7 +78,7 @@ export default function Home() {
                 <Ionicons name="add" size={22} color="#FFFFFF" />
                 <Text style={styles.actionLabel}>Adicionar</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.actionBtn} onPress={handleExport}>
+              <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate("Insights")}>
                 <Ionicons name="document-text-outline" size={22} color="#FFFFFF" />
                 <Text style={styles.actionLabel}>Relatórios</Text>
               </TouchableOpacity>

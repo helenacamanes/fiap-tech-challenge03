@@ -9,6 +9,7 @@ export type RootStackParamList = {
   Transactions: undefined;
   AddGoal: undefined;
   Profile: undefined;
+  Insights: undefined;
 };
 
 export type MainTabParamList = {

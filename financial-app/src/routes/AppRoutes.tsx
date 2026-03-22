@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../@types/navigation";
 import { MainTabs } from "./MainTabs";
 import AddTransaction from "../screens/AddTransaction";
+import Insights from "../screens/Insights";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -18,6 +19,7 @@ export function AppRoutes() {
     >
       <Stack.Screen name="MainTabs" component={MainTabs} />
       <Stack.Screen name="AddTransaction" component={AddTransaction} />
+      <Stack.Screen name="Insights" component={Insights} />
     </Stack.Navigator>
   );
 }
