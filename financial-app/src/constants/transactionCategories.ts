@@ -1,4 +1,4 @@
-export const TRANSACTION_CATEGORIES = [
+export const EXPENSE_CATEGORIES = [
   "Mercado",
   "Transporte",
   "Moradia",
@@ -7,9 +7,16 @@ export const TRANSACTION_CATEGORIES = [
   "Tecnologia",
   "Saúde",
   "Educação",
-  "Salário",
   "Assinaturas",
   "Pets",
   "Viagem",
+  "Outros",
+] as const;
+
+export const INCOME_CATEGORIES = [
+  "Salário",
+  "Freelance",
+  "Investimento",
+  "Bônus",
   "Outros",
 ] as const;

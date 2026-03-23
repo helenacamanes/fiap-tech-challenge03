@@ -27,27 +27,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let unsubscribe: undefined | (() => void);
-
-    try {
-      console.log("AuthProvider: subscribing to auth state");
-
-      unsubscribe = observeAuthState((firebaseUser) => {
-        console.log(
-          "AuthProvider: auth state changed",
-          firebaseUser?.email ?? "no user",
-        );
-        setUser(firebaseUser);
-        setInitializing(false);
-      });
-    } catch (error) {
-      console.error("AuthProvider: failed to observe auth state", error);
-      setInitializing(false);
-    }
-
     const timeout = setTimeout(() => {
       console.warn("AuthProvider: auth init timeout");
       setInitializing(false);
     }, 4000);
+
+    try {
+      unsubscribe = observeAuthState((firebaseUser) => {
+        clearTimeout(timeout);
+        setUser(firebaseUser);
+        setInitializing(false);
+      });
+    } catch (error) {
+      clearTimeout(timeout);
+      setInitializing(false);
+    }
 
     return () => {
       clearTimeout(timeout);

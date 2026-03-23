@@ -1,146 +1,282 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   SafeAreaView,
+  View,
   Text,
   StyleSheet,
-  View,
   TouchableOpacity,
-  TextInput,
-  StatusBar,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { z } from "zod";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
-import { useTransactions } from "../contexts/TransactionContext";
+
 import { RootStackParamList } from "../@types/navigation";
+import { useTransactions } from "../contexts/TransactionContext";
+
+import {
+  EXPENSE_CATEGORIES,
+  INCOME_CATEGORIES,
+} from "../constants/transactionCategories";
+import { COLORS } from "../theme";
+import { ScreenTitle } from "../components/ui/ScreenTitle";
+import { FormField } from "../components/ui/FormField";
+import { Button } from "../components/ui/Buttons";
 
 type TransactionType = "expense" | "income";
 type AddTransactionRouteProp = RouteProp<RootStackParamList, "AddTransaction">;
 
-type Category = {
-  id: string;
-  label: string;
-  icon: string;
+type FormData = {
+  type: TransactionType;
+  amount: string;
+  category: string;
+  date: string;
+  description: string;
+  account: string;
 };
 
-const EXPENSE_CATEGORIES: Category[] = [
-  { id: "Mercado", label: "Mercado", icon: "cart-outline" },
-  { id: "Transporte", label: "Transporte", icon: "car-outline" },
-  { id: "Moradia", label: "Moradia", icon: "home-outline" },
-  { id: "Alimentação", label: "Alimentação", icon: "fast-food-outline" },
-  { id: "Lazer", label: "Lazer", icon: "game-controller-outline" },
-  { id: "Tecnologia", label: "Tecnologia", icon: "laptop-outline" },
-  { id: "Saúde", label: "Saúde", icon: "medkit-outline" },
-  { id: "Outros", label: "Outros", icon: "ellipsis-horizontal-outline" },
-];
+type FormErrors = Partial<Record<keyof FormData, string>>;
 
-const INCOME_CATEGORIES: Category[] = [
-  { id: "Salário", label: "Salário", icon: "briefcase-outline" },
-  { id: "Freelance", label: "Freelance", icon: "code-slash-outline" },
-  { id: "Investimento", label: "Investimento", icon: "trending-up-outline" },
-  { id: "Bônus", label: "Bônus", icon: "gift-outline" },
-  { id: "Outros", label: "Outros", icon: "ellipsis-horizontal-outline" },
-];
+const schema = z.object({
+  type: z.enum(["expense", "income"]),
+  amount: z
+    .string()
+    .trim()
+    .min(1, "Informe o valor")
+    .refine((value) => {
+      const normalized = value.replace(/\./g, "").replace(",", ".");
+      const amount = Number(normalized);
+      return !isNaN(amount) && amount > 0;
+    }, "Informe um valor válido"),
+  category: z.string().min(1, "Selecione uma categoria"),
+  date: z
+    .string()
+    .trim()
+    .optional()
+    .refine((value) => {
+      if (!value) return true;
+      if (!/^\d{2}\/\d{2}\/\d{4}$/.test(value)) return false;
+
+      const [day, month, year] = value.split("/").map(Number);
+      const date = new Date(year, month - 1, day);
+
+      return (
+        date.getFullYear() === year &&
+        date.getMonth() === month - 1 &&
+        date.getDate() === day
+      );
+    }, "Data inválida. Use DD/MM/AAAA"),
+  description: z.string().optional(),
+  account: z.string().optional(),
+});
+
+function maskDate(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
+function maskCurrency(value: string) {
+  const digits = value.replace(/\D/g, "");
+
+  if (!digits) return "";
+
+  const number = Number(digits) / 100;
+
+  return number.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function parseAmount(value: string) {
+  return Number(value.replace(/\./g, "").replace(",", "."));
+}
+
+function parseDate(value?: string) {
+  if (!value?.trim()) return new Date();
+
+  const [day, month, year] = value.split("/").map(Number);
+  return new Date(year, month - 1, day);
+}
 
 export default function AddTransaction() {
   const navigation = useNavigation();
   const route = useRoute<AddTransactionRouteProp>();
   const { addTransaction } = useTransactions();
 
-  const [type, setType] = useState<TransactionType>(route.params.type);
-  const [value, setValue] = useState("");
-  const [category, setCategory] = useState("");
-  const [date, setDate] = useState("");
-  const [description, setDescription] = useState("");
-  const [account, setAccount] = useState("");
+  const [form, setForm] = useState<FormData>({
+    type: route.params.type,
+    amount: "",
+    category: "",
+    date: "",
+    description: "",
+    account: "",
+  });
 
-  const categories = type === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [loading, setLoading] = useState(false);
 
-  const isValid =
-    value.trim().length > 0 &&
-    parseFloat(value.replace(",", ".")) > 0 &&
-    category.length > 0;
+  const categories = useMemo(() => {
+    return form.type === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+  }, [form.type]);
 
-  function handleTypeChange(newType: TransactionType) {
-    setType(newType);
-    setCategory("");
+  function updateField<K extends keyof FormData>(field: K, value: FormData[K]) {
+    setForm((prev) => ({ ...prev, [field]: value }));
+
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
   }
 
-  function handleValueChange(text: string) {
-    const cleaned = text.replace(/[^0-9,.]/g, "");
-    setValue(cleaned);
-  }
-
-  function handleSave() {
-    if (!isValid) return;
-
-    const amount = parseFloat(value.replace(",", "."));
-
-    addTransaction({
-      title: category,
-      value: amount,
+  function handleTypeChange(type: TransactionType) {
+    setForm((prev) => ({
+      ...prev,
       type,
-      date: new Date(),
-      description,
-    });
+      category: "",
+    }));
 
-    navigation.goBack();
+    setErrors((prev) => ({
+      ...prev,
+      type: undefined,
+      category: undefined,
+    }));
+  }
+
+  function handleAmountChange(text: string) {
+    const masked = maskCurrency(text);
+    updateField("amount", masked);
+  }
+
+  function handleDateChange(text: string) {
+    const masked = maskDate(text);
+    updateField("date", masked);
+  }
+
+  function validateForm() {
+    const result = schema.safeParse(form);
+
+    if (result.success) {
+      setErrors({});
+      return true;
+    }
+
+    const fieldErrors: FormErrors = {};
+
+    for (const issue of result.error.issues) {
+      const field = issue.path[0] as keyof FormData;
+      if (!fieldErrors[field]) {
+        fieldErrors[field] = issue.message;
+      }
+    }
+
+    setErrors(fieldErrors);
+    return false;
+  }
+
+  async function handleSave() {
+    Alert.alert("Debug", "Entrou no handleSave");
+
+    debugger;
+
+    const isFormValid = validateForm();
+
+    if (!isFormValid) {
+      Alert.alert("Validação", "O formulário não passou na validação.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      Alert.alert("Debug", "Vai chamar addTransaction");
+
+      const payload = {
+        type: form.type,
+        amount: parseAmount(form.amount),
+        category: form.category,
+        description: form.description.trim(),
+        date: parseDate(form.date),
+        account: form.account.trim(),
+      };
+
+      await addTransaction(payload);
+
+      Alert.alert("Sucesso", "Transação salva com sucesso.");
+      navigation.goBack();
+    } catch (error) {
+      console.error("Erro ao salvar transação:", error);
+
+      Alert.alert(
+        "Erro ao salvar",
+        error instanceof Error ? error.message : "Não foi possível salvar.",
+      );
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
-
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="chevron-back" size={20} color="#E2E8F0" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Nova transação</Text>
-          <View style={{ width: 36 }} />
-        </View>
-
         <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="chevron-back" size={20} color={COLORS.text} />
+            </TouchableOpacity>
+
+            <ScreenTitle style={styles.title}>Nova transação</ScreenTitle>
+
+            <View style={styles.headerSpacer} />
+          </View>
+
           <View style={styles.typeToggle}>
             <TouchableOpacity
               style={[
-                styles.typeBtn,
-                type === "expense" && styles.typeBtnExpenseActive,
+                styles.typeButton,
+                form.type === "expense" && styles.typeButtonExpenseActive,
               ]}
               onPress={() => handleTypeChange("expense")}
+              activeOpacity={0.85}
             >
               <Text
                 style={[
-                  styles.typeBtnText,
-                  type === "expense" && styles.typeBtnTextActive,
+                  styles.typeButtonText,
+                  form.type === "expense" && styles.typeButtonTextActive,
                 ]}
               >
                 Despesa
               </Text>
             </TouchableOpacity>
+
             <TouchableOpacity
               style={[
-                styles.typeBtn,
-                type === "income" && styles.typeBtnIncomeActive,
+                styles.typeButton,
+                form.type === "income" && styles.typeButtonIncomeActive,
               ]}
               onPress={() => handleTypeChange("income")}
+              activeOpacity={0.85}
             >
               <Text
                 style={[
-                  styles.typeBtnText,
-                  type === "income" && styles.typeBtnTextActive,
+                  styles.typeButtonText,
+                  form.type === "income" && styles.typeButtonTextActive,
                 ]}
               >
                 Receita
@@ -148,110 +284,95 @@ export default function AddTransaction() {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>
-              Valor <Text style={styles.required}>*</Text>
-            </Text>
-            <View style={styles.valueInputWrapper}>
-              <Text style={styles.currencySymbol}>R$</Text>
-              <TextInput
-                style={styles.valueInput}
-                placeholder="0,00"
-                placeholderTextColor="#475569"
-                keyboardType="numeric"
-                value={value}
-                onChangeText={handleValueChange}
-              />
-            </View>
-          </View>
+          <FormField
+            label="Valor *"
+            placeholder="0,00"
+            keyboardType="numeric"
+            value={form.amount}
+            onChangeText={handleAmountChange}
+            error={errors.amount}
+          />
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>
-              Categoria <Text style={styles.required}>*</Text>
-            </Text>
+            <Text style={styles.label}>Categoria *</Text>
+
             <View style={styles.categoryGrid}>
-              {categories.map((cat) => (
-                <TouchableOpacity
-                  key={cat.id}
-                  style={[
-                    styles.categoryChip,
-                    category === cat.id && styles.categoryChipActive,
-                  ]}
-                  onPress={() => setCategory(cat.id)}
-                >
-                  <Ionicons
-                    name={cat.icon as any}
-                    size={14}
-                    color={category === cat.id ? "#FFFFFF" : "#94A3B8"}
-                  />
-                  <Text
+              {categories.map((category) => {
+                const active = form.category === category;
+
+                return (
+                  <TouchableOpacity
+                    key={category}
                     style={[
-                      styles.categoryChipText,
-                      category === cat.id && styles.categoryChipTextActive,
+                      styles.categoryChip,
+                      active && styles.categoryChipActive,
                     ]}
+                    onPress={() => updateField("category", category)}
+                    activeOpacity={0.85}
                   >
-                    {cat.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Text
+                      style={[
+                        styles.categoryChipText,
+                        active && styles.categoryChipTextActive,
+                      ]}
+                    >
+                      {category}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
+
+            {errors.category ? (
+              <Text style={styles.errorText}>{errors.category}</Text>
+            ) : null}
           </View>
 
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Data</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="DD/MM/AAAA"
-              placeholderTextColor="#475569"
-              value={date}
-              onChangeText={setDate}
-              keyboardType="numeric"
-            />
-          </View>
+          <FormField
+            label="Data"
+            placeholder="DD/MM/AAAA"
+            keyboardType="numeric"
+            value={form.date}
+            onChangeText={handleDateChange}
+            error={errors.date}
+          />
 
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Descrição</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Adicione uma nota (opcional)"
-              placeholderTextColor="#475569"
-              value={description}
-              onChangeText={setDescription}
-              multiline
-              numberOfLines={3}
-              textAlignVertical="top"
-            />
-          </View>
+          <FormField
+            label="Descrição"
+            placeholder="Adicione uma nota (opcional)"
+            value={form.description}
+            onChangeText={(text: string) => updateField("description", text)}
+            multiline
+            numberOfLines={4}
+            style={styles.textArea}
+          />
 
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Conta (opcional)</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Conta corrente"
-              placeholderTextColor="#475569"
-              value={account}
-              onChangeText={setAccount}
-            />
-            <Text style={styles.fieldHint}>
-              Deixe em branco para usar a conta padrão
-            </Text>
-          </View>
+          <FormField
+            label="Conta (opcional)"
+            placeholder="Conta corrente"
+            value={form.account}
+            onChangeText={(text: string) => updateField("account", text)}
+          />
 
-          <TouchableOpacity
-            style={[styles.saveBtn, !isValid && styles.saveBtnDisabled]}
-            onPress={handleSave}
-            disabled={!isValid}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.saveBtnText}>Salvar transação</Text>
-          </TouchableOpacity>
+          <Text style={styles.hint}>
+            Deixe em branco para usar a conta padrão
+          </Text>
 
-          <TouchableOpacity
-            style={styles.cancelBtn}
+          <Button
+            title="Salvar transação"
+            onPress={() => {
+              Alert.alert("Teste", "Botão clicado");
+              handleSave();
+            }}
+            loading={loading}
+            style={styles.saveButton}
+          />
+
+          <Button
+            title="Cancelar"
+            variant="secondary"
             onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.cancelBtnText}>Cancelar</Text>
-          </TouchableOpacity>
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -259,179 +380,120 @@ export default function AddTransaction() {
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
   container: {
     flex: 1,
-    backgroundColor: "#0F172A",
+    backgroundColor: COLORS.background,
   },
-
+  content: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 32,
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
+    marginBottom: 18,
   },
-  backBtn: {
+  backButton: {
     width: 36,
     height: 36,
-    borderRadius: 10,
-    backgroundColor: "#1E293B",
-    justifyContent: "center",
+    borderRadius: 12,
+    backgroundColor: "#16233B",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#334155",
+    justifyContent: "center",
   },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#F1F5F9",
+  headerSpacer: {
+    width: 36,
   },
-
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 40,
+  title: {
+    marginBottom: 0,
+    fontSize: 28,
   },
-
   typeToggle: {
     flexDirection: "row",
-    backgroundColor: "#1E293B",
-    borderRadius: 12,
+    backgroundColor: "#16233B",
+    borderRadius: 18,
     padding: 4,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: "#334155",
+    marginBottom: 18,
   },
-  typeBtn: {
+  typeButton: {
     flex: 1,
-    paddingVertical: 10,
-    borderRadius: 9,
+    height: 44,
+    borderRadius: 14,
     alignItems: "center",
+    justifyContent: "center",
   },
-  typeBtnExpenseActive: {
-    backgroundColor: "#EF4444",
+  typeButtonExpenseActive: {
+    backgroundColor: "#F24848",
   },
-  typeBtnIncomeActive: {
-    backgroundColor: "#10B981",
+  typeButtonIncomeActive: {
+    backgroundColor: "#15B981",
   },
-  typeBtnText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#64748B",
-  },
-  typeBtnTextActive: {
-    color: "#FFFFFF",
-  },
-
-  fieldGroup: {
-    marginBottom: 20,
-  },
-  fieldLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#94A3B8",
-    marginBottom: 8,
-  },
-  required: {
-    color: "#EF4444",
-  },
-  fieldHint: {
-    fontSize: 11,
-    color: "#475569",
-    marginTop: 6,
-  },
-
-  valueInputWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#1E293B",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#334155",
-    paddingHorizontal: 14,
-  },
-  currencySymbol: {
-    fontSize: 16,
+  typeButtonText: {
+    color: COLORS.textSecondary,
     fontWeight: "700",
-    color: "#64748B",
-    marginRight: 8,
-  },
-  valueInput: {
-    flex: 1,
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#F1F5F9",
-    paddingVertical: 14,
-  },
-
-  input: {
-    backgroundColor: "#1E293B",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#334155",
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    color: "#F1F5F9",
     fontSize: 15,
   },
-  textArea: {
-    minHeight: 80,
-    paddingTop: 13,
+  typeButtonTextActive: {
+    color: "#FFFFFF",
   },
-
+  fieldGroup: {
+    marginBottom: 18,
+  },
+  label: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: COLORS.text,
+    marginBottom: 10,
+  },
   categoryGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
   },
   categoryChip: {
-    flexDirection: "row",
+    minHeight: 38,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    backgroundColor: "#1D2A44",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: "#1E293B",
+    justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#334155",
+    borderColor: "transparent",
   },
   categoryChipActive: {
-    backgroundColor: "#2563EB",
-    borderColor: "#2563EB",
+    backgroundColor: COLORS.primary,
   },
   categoryChipText: {
-    fontSize: 13,
-    fontWeight: "500",
-    color: "#94A3B8",
+    color: COLORS.text,
+    fontSize: 14,
+    fontWeight: "600",
   },
   categoryChipTextActive: {
     color: "#FFFFFF",
-    fontWeight: "600",
   },
-
-  saveBtn: {
-    backgroundColor: "#2563EB",
-    borderRadius: 12,
-    paddingVertical: 15,
-    alignItems: "center",
-    marginBottom: 12,
+  errorText: {
+    marginTop: 6,
+    fontSize: 13,
+    color: COLORS.danger,
   },
-  saveBtnDisabled: {
-    opacity: 0.45,
+  hint: {
+    marginTop: -10,
+    marginBottom: 8,
+    fontSize: 13,
+    color: COLORS.textSecondary,
   },
-  saveBtnText: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-    fontSize: 15,
+  textArea: {
+    height: 110,
+    paddingTop: 14,
+    textAlignVertical: "top",
   },
-  cancelBtn: {
-    alignItems: "center",
-    paddingVertical: 10,
-  },
-  cancelBtnText: {
-    color: "#64748B",
-    fontWeight: "600",
-    fontSize: 14,
+  saveButton: {
+    marginTop: 8,
+    marginBottom: 4,
   },
 });

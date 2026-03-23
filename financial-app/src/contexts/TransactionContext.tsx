@@ -1,60 +1,53 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { Transaction } from "../@types/transaction";
+import {
+  createTransaction,
+  removeTransactionFromFirestore,
+  subscribeToTransactions,
+  type CreateTransactionInput,
+} from "../services/firestoreService";
+import { useAuth } from "./AuthContext";
 
 type TransactionContextData = {
   transactions: Transaction[];
-  addTransaction: (transaction: Omit<Transaction, "id">) => void;
-  removeTransaction: (id: string) => void;
+  addTransaction: (transaction: CreateTransactionInput) => Promise<void>;
+  removeTransaction: (id: string) => Promise<void>;
 };
 
 const TransactionContext = createContext<TransactionContextData>(
-  {} as TransactionContextData
+  {} as TransactionContextData,
 );
 
-export function TransactionProvider({ children }: { children: React.ReactNode }) {
-  const [transactions, setTransactions] = useState<Transaction[]>([
-    {
-      id: "1",
-      title: "Salário Mensal",
-      value: 2500,
-      type: "income",
-      date: new Date(),
-    },
-    {
-      id: "2",
-      title: "Supermercado Continente",
-      value: 85.4,
-      type: "expense",
-      date: new Date(),
-    },
-    {
-      id: "3",
-      title: "Ginásio",
-      value: 35.0,
-      type: "expense",
-      date: new Date(),
-    },
-    {
-      id: "4",
-      title: "Freelance React",
-      value: 450,
-      type: "income",
-      date: new Date(),
-    },
-  ]);
+export function TransactionProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const { user } = useAuth();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
 
-  function addTransaction(transaction: Omit<Transaction, "id">) {
-    setTransactions((prev) => [
-      {
-        ...transaction,
-        id: Date.now().toString(),
-      },
-      ...prev,
-    ]);
+  useEffect(() => {
+    if (!user?.uid) {
+      setTransactions([]);
+      return;
+    }
+
+    const unsubscribe = subscribeToTransactions(setTransactions);
+
+    return () => {
+      unsubscribe?.();
+    };
+  }, [user?.uid]);
+
+  async function addTransaction(transaction: CreateTransactionInput) {
+    await createTransaction(transaction);
   }
 
-  function removeTransaction(id: string) {
-    setTransactions((prev) => prev.filter((t) => t.id !== id));
+  async function removeTransaction(id: string) {
+    const transaction = transactions.find((t) => t.id === id);
+    if (!transaction) return;
+
+    await removeTransactionFromFirestore(transaction);
   }
 
   return (

@@ -1,4 +1,3 @@
-import React from "react";
 import {
   TouchableOpacity,
   Text,
@@ -7,6 +6,7 @@ import {
   TouchableOpacityProps,
   ViewStyle,
   TextStyle,
+  GestureResponderEvent,
 } from "react-native";
 import { COLORS } from "../../theme";
 
@@ -16,6 +16,7 @@ interface ButtonProps extends TouchableOpacityProps {
   title: string;
   loading?: boolean;
   variant?: ButtonVariant;
+  onPress?: (event: GestureResponderEvent) => void;
 }
 
 export function Button({
@@ -24,6 +25,7 @@ export function Button({
   disabled,
   variant = "primary",
   style,
+  onPress,
   ...rest
 }: ButtonProps) {
   const isDisabled = disabled || loading;
@@ -38,6 +40,7 @@ export function Button({
         style,
       ]}
       disabled={isDisabled}
+      onPress={onPress}
       {...rest}
     >
       {loading ? (

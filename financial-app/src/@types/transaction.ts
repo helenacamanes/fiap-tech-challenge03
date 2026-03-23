@@ -5,4 +5,5 @@ export type Transaction = {
   type: "income" | "expense";
   date: Date;
   description?: string;
+  account?: string;
 };

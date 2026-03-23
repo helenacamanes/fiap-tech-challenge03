@@ -1,22 +1,13 @@
-import { initializeApp, getApps, getApp } from "firebase/app";
+import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
+import { getAuth, initializeAuth, type Auth } from "firebase/auth";
 import {
-  getAuth,
-  initializeAuth,
-  getReactNativePersistence,
-  type Auth,
-} from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+  getFirestore,
+  initializeFirestore,
+  type Firestore,
+} from "firebase/firestore";
 import { env } from "../../config/env";
-
-console.log("Firebase env check", {
-  apiKey: !!env.firebaseApiKey,
-  authDomain: env.firebaseAuthDomain,
-  projectId: env.firebaseProjectId,
-  storageBucket: env.firebaseStorageBucket,
-  messagingSenderId: !!env.firebaseMessagingSenderId,
-  appId: !!env.firebaseAppId,
-});
 
 const firebaseConfig = {
   apiKey: env.firebaseApiKey,
@@ -27,20 +18,37 @@ const firebaseConfig = {
   appId: env.firebaseAppId,
 };
 
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+const app: FirebaseApp = getApps().length
+  ? getApp()
+  : initializeApp(firebaseConfig);
 
-let authInstance: Auth;
+let auth: Auth;
+let db: Firestore;
 
-try {
-  authInstance = initializeAuth(app, {
-    persistence: getReactNativePersistence(AsyncStorage),
-  });
-  console.log("Firebase auth initialized with RN persistence");
-} catch (error) {
-  console.warn("initializeAuth failed, falling back to getAuth", error);
-  authInstance = getAuth(app);
+if (Platform.OS === "web") {
+  auth = getAuth(app);
+
+  db = getFirestore(app);
+} else {
+  try {
+    const { getReactNativePersistence } = require("firebase/auth/react-native");
+
+    auth = initializeAuth(app, {
+      persistence: getReactNativePersistence(AsyncStorage),
+    });
+
+    db = initializeFirestore(app, {
+      experimentalForceLongPolling: true,
+    });
+  } catch (error) {
+    console.warn("Firebase native init failed:", error);
+
+    auth = getAuth(app);
+
+    db = initializeFirestore(app, {
+      experimentalForceLongPolling: true,
+    });
+  }
 }
 
-export const auth = authInstance;
-export const db = getFirestore(app);
-export { app };
+export { app, auth, db };
