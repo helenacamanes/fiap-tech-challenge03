@@ -11,7 +11,6 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { TransactionItem } from "../components/TransactionItem";
 import { exportToPDF } from "../services/exportService";
 import { useTransactions } from "../contexts/TransactionContext";
 import { RootStackParamList } from "../@types/navigation";
@@ -21,7 +20,6 @@ export default function Home() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { transactions } = useTransactions();
-
   const { user } = useAuth();
 
   const firstName = useMemo(() => {
@@ -44,10 +42,18 @@ export default function Home() {
     const income = transactions
       .filter((t) => t.type === "income")
       .reduce((acc, t) => acc + t.value, 0);
+
     const expense = transactions
       .filter((t) => t.type === "expense")
       .reduce((acc, t) => acc + t.value, 0);
+
     return { total: income - expense, income, expense };
+  }, [transactions]);
+
+  const recentTransactions = useMemo(() => {
+    return [...transactions]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5);
   }, [transactions]);
 
   const formatCurrency = (value: number) =>
@@ -68,7 +74,7 @@ export default function Home() {
       <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
 
       <FlatList
-        data={transactions.slice(0, 5)}
+        data={recentTransactions}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -108,6 +114,7 @@ export default function Home() {
                 <Ionicons name="add" size={22} color="#FFFFFF" />
                 <Text style={styles.actionLabel}>Adicionar</Text>
               </TouchableOpacity>
+
               <TouchableOpacity
                 style={styles.actionBtn}
                 onPress={() => navigation.navigate("Insights")}
@@ -198,7 +205,7 @@ export default function Home() {
             <View style={styles.transactionInfo}>
               <Text style={styles.transactionTitle}>{item.title}</Text>
               <Text style={styles.transactionTime}>
-                {getRelativeDate(item.date)}
+                {formatTransactionDate(item.date)}
               </Text>
             </View>
 
@@ -236,20 +243,8 @@ function getCategoryIcon(title: string): any {
   return "receipt-outline";
 }
 
-function getRelativeDate(date: Date): string {
-  const d = new Date(date);
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  const timeStr = d.toLocaleTimeString("pt-BR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-  if (diffDays === 0) return `Hoje, ${timeStr}`;
-  if (diffDays === 1) return `Ontem, ${timeStr}`;
-  return `${diffDays} dias atrás`;
+function formatTransactionDate(date: Date): string {
+  return new Date(date).toLocaleDateString("pt-BR");
 }
 
 const styles = StyleSheet.create({
