@@ -1,115 +1,180 @@
-import React, { useState, useRef } from 'react';
+import React, { useRef, useState } from "react";
 import {
-    StyleSheet, View, FlatList, TouchableOpacity, Text, SafeAreaView,
-    useWindowDimensions
-} from 'react-native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from '../@types/navigation';
-import OnboardingItem from '../components/OnboardingItem';
-import { darkTheme as COLORS } from '../theme';
+  StyleSheet,
+  View,
+  FlatList,
+  TouchableOpacity,
+  Text,
+  SafeAreaView,
+  useWindowDimensions,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../@types/navigation";
+import OnboardingItem from "../components/OnboardingItem";
+import { darkTheme as COLORS } from "../theme";
 
 const slides = [
-    {
-        id: '1',
-        image: require('../../assets/eye.png'),
-        title: 'Clareza sobre seus gastos',
-        description: 'Visualize para onde seu dinheiro está indo com clareza total, como um farol iluminando o oceano.',
-    },
-    {
-        id: '2',
-        image: require('../../assets/pig.png'),
-        title: 'Controle do seu orçamento',
-        description: 'Defina limites e acompanhe seus gastos em tempo real. Mantenha-se no rumo certo.',
-    },
-    {
-        id: '3',
-        image: require('../../assets/target.png'),
-        title: 'Metas que você consegue enxergar',
-        description: 'Estabeleça objetivos financeiros e acompanhe seu progresso. Cada passo iluminado conta.',
-    },
+  {
+    id: "1",
+    image: require("../../assets/eye.png"),
+    title: "Clareza sobre seus gastos",
+    description:
+      "Visualize para onde seu dinheiro está indo com clareza total, como um farol iluminando o oceano.",
+  },
+  {
+    id: "2",
+    image: require("../../assets/pig.png"),
+    title: "Controle do seu orçamento",
+    description:
+      "Defina limites e acompanhe seus gastos em tempo real. Mantenha-se no rumo certo.",
+  },
+  {
+    id: "3",
+    image: require("../../assets/target.png"),
+    title: "Metas que você consegue enxergar",
+    description:
+      "Estabeleça objetivos financeiros e acompanhe seu progresso. Cada passo iluminado conta.",
+  },
 ];
 
-type NavigationProp = StackNavigationProp<RootStackParamList, 'Onboarding'>;
+type Props = NativeStackScreenProps<RootStackParamList, "Onboarding">;
 
-interface Props {
-    navigation: NavigationProp;
-}
+export default function Onboarding({ navigation }: Props) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const flatListRef = useRef<FlatList<any> | null>(null);
+  const { width } = useWindowDimensions();
 
-export default function Onboarding ({ navigation }: Props) {
-    const [currentIndex, setCurrentIndex] = useState(0);
-    const flatListRef = useRef<FlatList>(null);
-    const { width } = useWindowDimensions();
+  async function markOnboardingAsSeen() {
+    await AsyncStorage.setItem("@lighthouse:alreadyLaunched", "true");
+  }
 
-    const handleNext = () => {
-        if (currentIndex < slides.length - 1) {
-            flatListRef.current?.scrollToIndex({ index: currentIndex + 1 });
-        } else {
-            navigation.replace('Login');
-        }
-    };
+  async function handleFinish() {
+    await markOnboardingAsSeen();
+    navigation.replace("Register");
+  }
 
-    return (
-        <SafeAreaView style={styles.container}>
-            <FlatList
-                data={slides}
-                renderItem={({ item }) => <OnboardingItem {...item} />}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                pagingEnabled 
-                keyExtractor={(item) => item.id}
-                onMomentumScrollEnd={(event) => {
-                    const contentOffset = event.nativeEvent.contentOffset.x;
-                    setCurrentIndex(Math.round(contentOffset / width));
-                }}
-                ref={flatListRef}
+  async function handleGoToLogin() {
+    await markOnboardingAsSeen();
+    navigation.replace("Login");
+  }
+
+  async function handleNext() {
+    if (currentIndex < slides.length - 1) {
+      const nextIndex = currentIndex + 1;
+
+      flatListRef.current?.scrollToOffset({
+        offset: nextIndex * width,
+        animated: true,
+      });
+
+      setCurrentIndex(nextIndex);
+    } else {
+      await handleFinish();
+    }
+  }
+
+  function handleScrollEnd(event: NativeSyntheticEvent<NativeScrollEvent>) {
+    const contentOffsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(contentOffsetX / width);
+    setCurrentIndex(index);
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <FlatList
+        ref={flatListRef}
+        data={slides}
+        horizontal
+        pagingEnabled
+        bounces={false}
+        showsHorizontalScrollIndicator={false}
+        keyExtractor={(item) => item.id}
+        onMomentumScrollEnd={handleScrollEnd}
+        style={{ flex: 1, marginTop: 300 }}
+        contentContainerStyle={{ flexGrow: 1 }}
+        getItemLayout={(_, index) => ({
+          length: width,
+          offset: width * index,
+          index,
+        })}
+        renderItem={({ item }) => (
+          <View style={{ width, flex: 1 }}>
+            <OnboardingItem {...item} />
+          </View>
+        )}
+      />
+
+      <View style={styles.footer}>
+        <View style={styles.dotsContainer}>
+          {slides.map((_, index) => (
+            <View
+              key={index}
+              style={[styles.dot, currentIndex === index && styles.activeDot]}
             />
+          ))}
+        </View>
 
-            <View style={styles.footer}>
-                <View style={styles.dotsContainer}>
-                    {slides.map((_, index) => (
-                        <View
-                            key={index}
-                            style={[
-                                styles.dot,
-                                currentIndex === index && { backgroundColor: COLORS.primary, width: 20 }
-                            ]}
-                        />
-                    ))}
-                </View>
+        <TouchableOpacity style={styles.button} onPress={handleNext}>
+          <Text style={styles.buttonText}>
+            {currentIndex === slides.length - 1 ? "Começar" : "Continuar"}
+          </Text>
+        </TouchableOpacity>
 
-                <TouchableOpacity style={styles.button} onPress={handleNext}>
-                    <Text style={styles.buttonText}>
-                        {currentIndex === slides.length - 1 ? 'Começar' : 'Continuar'}
-                    </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={styles.linkButton}
-                    onPress={() => navigation.navigate('Login')}
-                    
-                >
-                    <Text style={styles.linkText}>Já tenho conta</Text>
-                    
-                </TouchableOpacity>
-            </View>
-        </SafeAreaView>
-    );
+        <TouchableOpacity style={styles.linkButton} onPress={handleGoToLogin}>
+          <Text style={styles.linkText}>Já tenho conta</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: { backgroundColor: COLORS.background,  minHeight: '100%' },
-    footer: { paddingHorizontal: 32, paddingBottom: 40, alignItems: 'center' },
-    dotsContainer: { flexDirection: 'row', marginBottom: 32 },
-    dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(255, 255, 255, 0.2)', marginRight: 8 },
-    button: {
-        backgroundColor: COLORS.primary,
-        width: '100%',
-        height: 48,
-        borderRadius: 8,
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
-    buttonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
-    linkButton: { marginTop: 24 },
-    linkText: { color: COLORS.textSecondary, fontSize: 14 },
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  footer: {
+    paddingHorizontal: 32,
+    paddingBottom: 32,
+    paddingTop: 12,
+    alignItems: "center",
+  },
+  dotsContainer: {
+    flexDirection: "row",
+    marginBottom: 32,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    marginRight: 8,
+  },
+  activeDot: {
+    backgroundColor: COLORS.primary,
+    width: 20,
+  },
+  button: {
+    backgroundColor: COLORS.primary,
+    width: "100%",
+    height: 48,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  buttonText: {
+    color: "#FFF",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  linkButton: {
+    marginTop: 24,
+  },
+  linkText: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+  },
 });

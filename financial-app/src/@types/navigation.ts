@@ -11,6 +11,8 @@ export type RootStackParamList = {
   Profile: undefined;
   Insights: undefined;
   ChangePassword: undefined;
+  AuthStack: undefined;
+  Goals: undefined;
 };
 
 export type MainTabParamList = {
