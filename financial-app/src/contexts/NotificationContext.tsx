@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import * as Notifications from "expo-notifications";
 import {
   registerForPushNotifications,
@@ -17,14 +23,18 @@ type NotificationContextData = {
 };
 
 const NotificationContext = createContext<NotificationContextData>(
-  {} as NotificationContextData
+  {} as NotificationContextData,
 );
 
-export function NotificationProvider({ children }: { children: React.ReactNode }) {
+export function NotificationProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [pushToken, setPushToken] = useState<string | null>(null);
   const [dailyReminderEnabled, setDailyReminderEnabled] = useState(true);
-  const notificationListener = useRef<Notifications.Subscription>();
-  const responseListener = useRef<Notifications.Subscription>();
+  const notificationListener = useRef<Notifications.Subscription | null>(null);
+  const responseListener = useRef<Notifications.Subscription | null>(null);
 
   useEffect(() => {
     registerForPushNotifications().then(setPushToken);

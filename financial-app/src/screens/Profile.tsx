@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   SafeAreaView,
   Text,
@@ -12,65 +12,70 @@ import {
   Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTransactions } from "../contexts/TransactionContext";
 import { useGoals } from "../contexts/GoalsContext";
 import { useNotifications } from "../contexts/NotificationContext";
+import { useAuth } from "../contexts/AuthContext";
+import { signOutUser } from "../services/authService";
+import { RootStackParamList } from "../@types/navigation";
 
 const TERMS_TEXT = `Termos de Uso — Lighthouse Finance
 
 Última atualização: março de 2025
 
 1. Aceitação dos Termos
-Ao usar o Lighthouse Finance, concordas com estes Termos de Uso. Se não concordares, não deves usar a aplicação.
+Ao usar o Lighthouse Finance, você concorda com estes Termos de Uso. Se não concordar, não deve utilizar o aplicativo.
 
 2. Descrição do Serviço
-O Lighthouse Finance é uma aplicação de gestão financeira pessoal que permite registar transações, definir metas de poupança e acompanhar o teu progresso financeiro.
+O Lighthouse Finance é um aplicativo de gestão financeira pessoal que permite registrar transações, definir metas de economia e acompanhar seu progresso financeiro.
 
 3. Dados Pessoais
-Os teus dados financeiros são armazenados de forma segura. Não partilhamos os teus dados com terceiros sem o teu consentimento.
+Seus dados financeiros são armazenados de forma segura. Não compartilhamos seus dados com terceiros sem o seu consentimento.
 
 4. Responsabilidade
-O Lighthouse Finance é uma ferramenta de apoio à gestão financeira. Não nos responsabilizamos por decisões financeiras tomadas com base nos dados apresentados na aplicação.
+O Lighthouse Finance é uma ferramenta de apoio à organização financeira. Não nos responsabilizamos por decisões financeiras tomadas com base nas informações exibidas no aplicativo.
 
-5. Alterações aos Termos
-Reservamo-nos o direito de atualizar estes Termos a qualquer momento. As alterações serão comunicadas através da aplicação.
+5. Alterações nos Termos
+Podemos atualizar estes Termos a qualquer momento. As alterações serão comunicadas pelo aplicativo.
 
-6. Contacto
-Para questões relacionadas com estes Termos, contacta-nos através do suporte da aplicação.`;
+6. Contato
+Para dúvidas relacionadas a estes Termos, entre em contato pelo suporte do aplicativo.`;
 
 const PRIVACY_TEXT = `Política de Privacidade — Lighthouse Finance
 
 Última atualização: março de 2025
 
-1. Dados que Recolhemos
-Recolhemos apenas os dados necessários para o funcionamento da aplicação:
-• Email e nome para autenticação
-• Transações financeiras que introduzes
-• Metas de poupança que defines
+1. Dados que coletamos
+Coletamos apenas os dados necessários para o funcionamento do aplicativo:
+• Nome e e-mail para autenticação
+• Transações financeiras cadastradas por você
+• Metas financeiras criadas por você
 
-2. Como Usamos os Dados
-Os teus dados são usados exclusivamente para:
-• Mostrar o teu histórico financeiro
+2. Como usamos os dados
+Seus dados são usados exclusivamente para:
+• Exibir seu histórico financeiro
 • Calcular estatísticas e relatórios pessoais
-• Enviar notificações que autorizaste
+• Enviar notificações que você autorizou
 
 3. Armazenamento
-Os dados são armazenados de forma segura na Firebase (Google Cloud), com encriptação em trânsito e em repouso.
+Os dados são armazenados de forma segura no Firebase (Google Cloud), com criptografia em trânsito e em repouso.
 
-4. Partilha de Dados
-Não vendemos nem partilhamos os teus dados pessoais com terceiros para fins comerciais.
+4. Compartilhamento de dados
+Não vendemos nem compartilhamos seus dados pessoais com terceiros para fins comerciais.
 
-5. Os Teus Direitos
-Tens o direito de:
-• Aceder aos teus dados
+5. Seus direitos
+Você tem o direito de:
+• Acessar seus dados
 • Corrigir dados incorretos
-• Eliminar a tua conta e todos os dados associados
+• Excluir sua conta e os dados associados
 
-6. Cookies e Rastreamento
-Não usamos cookies de rastreamento de terceiros.
+6. Cookies e rastreamento
+Não utilizamos cookies de rastreamento de terceiros.
 
-7. Contacto
-Para exerceres os teus direitos ou colocares questões sobre privacidade, contacta-nos pelo suporte da aplicação.`;
+7. Contato
+Para exercer seus direitos ou tirar dúvidas sobre privacidade, entre em contato pelo suporte do aplicativo.`;
 
 function LegalModal({
   visible,
@@ -117,27 +122,63 @@ function LegalModal({
 }
 
 export default function Profile() {
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
   const { transactions } = useTransactions();
   const { goals } = useGoals();
   const { dailyReminderEnabled, toggleDailyReminder } = useNotifications();
+  const { user } = useAuth();
 
   const [termsVisible, setTermsVisible] = useState(false);
   const [privacyVisible, setPrivacyVisible] = useState(false);
 
   const totalTransactions = transactions.length;
   const activeGoals = goals.filter((g) => g.current < g.target).length;
-  const daysOfUse = 45;
 
-  function handleLogout() {
-    Alert.alert("Sair da conta", "Tens a certeza que queres sair?", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Sair",
-        style: "destructive",
-        onPress: () => {
-        },
-      },
-    ]);
+  const displayName = useMemo(() => {
+    const name = user?.displayName?.trim();
+
+    if (name) return name;
+
+    const emailPrefix = user?.email?.split("@")[0]?.trim();
+
+    if (emailPrefix) {
+      return emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
+    }
+
+    return "Usuário";
+  }, [user]);
+
+  const avatarLetter = useMemo(() => {
+    return displayName.charAt(0).toUpperCase();
+  }, [displayName]);
+
+  const userEmail = user?.email ?? "E-mail não disponível";
+
+  const daysOfUse = useMemo(() => {
+    const creationTime = user?.metadata?.creationTime;
+
+    if (!creationTime) return 0;
+
+    const createdAt = new Date(creationTime);
+    const now = new Date();
+    const diff = Math.floor(
+      (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24),
+    );
+
+    return Math.max(diff + 1, 1);
+  }, [user]);
+
+  async function handleLogout() {
+    try {
+      console.log("Tentando sair da conta...");
+      await signOutUser();
+      console.log("Logout realizado com sucesso");
+    } catch (error) {
+      console.error("Erro ao sair:", error);
+      Alert.alert("Erro", "Não foi possível sair da conta.");
+    }
   }
 
   return (
@@ -155,11 +196,11 @@ export default function Profile() {
 
           <View style={styles.profileRow}>
             <View style={styles.avatar}>
-              <Text style={styles.avatarLetter}>L</Text>
+              <Text style={styles.avatarLetter}>{avatarLetter}</Text>
             </View>
             <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>Larissa Akemi</Text>
-              <Text style={styles.profileEmail}>larissa@email.com</Text>
+              <Text style={styles.profileName}>{displayName}</Text>
+              <Text style={styles.profileEmail}>{userEmail}</Text>
             </View>
           </View>
 
@@ -193,12 +234,18 @@ export default function Profile() {
           <View style={styles.menuItem}>
             <View style={styles.menuLeft}>
               <View style={styles.menuIconWrapper}>
-                <Ionicons name="notifications-outline" size={18} color="#94A3B8" />
+                <Ionicons
+                  name="notifications-outline"
+                  size={18}
+                  color="#94A3B8"
+                />
               </View>
               <View>
                 <Text style={styles.menuLabel}>Notificações</Text>
                 <Text style={styles.menuSubLabel}>
-                  {dailyReminderEnabled ? "Lembrete às 21h ativo" : "Desativado"}
+                  {dailyReminderEnabled
+                    ? "Lembrete das 21h ativo"
+                    : "Desativado"}
                 </Text>
               </View>
             </View>
@@ -212,10 +259,26 @@ export default function Profile() {
 
           <View style={styles.menuDivider} />
 
-          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            activeOpacity={0.7}
+            onPress={() => {
+              const parentNavigation = navigation.getParent();
+
+              if (parentNavigation) {
+                parentNavigation.navigate("ChangePassword" as never);
+              } else {
+                navigation.navigate("ChangePassword");
+              }
+            }}
+          >
             <View style={styles.menuLeft}>
               <View style={styles.menuIconWrapper}>
-                <Ionicons name="lock-closed-outline" size={18} color="#94A3B8" />
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={18}
+                  color="#94A3B8"
+                />
               </View>
               <Text style={styles.menuLabel}>Alterar senha</Text>
             </View>
@@ -226,8 +289,9 @@ export default function Profile() {
         <View style={styles.card}>
           <Text style={styles.cardSectionTitle}>Sobre o Lighthouse</Text>
           <Text style={styles.aboutText}>
-            Ilumine sua vida financeira com clareza e controle. Como um farol
-            guia navios no oceano, o Lighthouse guia suas decisões financeiras.
+            Ilumine sua vida financeira com clareza e controle. Assim como um
+            farol guia navios no oceano, o Lighthouse ajuda a orientar suas
+            decisões financeiras.
           </Text>
 
           <View style={styles.linksRow}>

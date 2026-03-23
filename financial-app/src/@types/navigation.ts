@@ -1,5 +1,5 @@
 export type RootStackParamList = {
-  AddTransaction: { type: "income" | "expense" }; 
+  AddTransaction: { type: "income" | "expense" };
   ForgotPassword: undefined;
   Home: undefined;
   Login: undefined;
@@ -10,6 +10,7 @@ export type RootStackParamList = {
   AddGoal: undefined;
   Profile: undefined;
   Insights: undefined;
+  ChangePassword: undefined;
 };
 
 export type MainTabParamList = {
