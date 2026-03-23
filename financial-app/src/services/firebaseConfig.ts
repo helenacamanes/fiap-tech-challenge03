@@ -7,6 +7,7 @@ import {
   initializeFirestore,
   type Firestore,
 } from "firebase/firestore";
+import { getStorage, type FirebaseStorage } from "firebase/storage";
 import { env } from "../../config/env";
 
 const firebaseConfig = {
@@ -27,7 +28,6 @@ let db: Firestore;
 
 if (Platform.OS === "web") {
   auth = getAuth(app);
-
   db = getFirestore(app);
 } else {
   try {
@@ -44,11 +44,12 @@ if (Platform.OS === "web") {
     console.warn("Firebase native init failed:", error);
 
     auth = getAuth(app);
-
     db = initializeFirestore(app, {
       experimentalForceLongPolling: true,
     });
   }
 }
 
-export { app, auth, db };
+const storage: FirebaseStorage = getStorage(app);
+
+export { app, auth, db, storage };

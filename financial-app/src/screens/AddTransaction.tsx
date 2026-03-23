@@ -26,6 +26,10 @@ import { ScreenTitle } from "../components/ui/ScreenTitle";
 import { FormField } from "../components/ui/FormField";
 import { Button } from "../components/ui/Buttons";
 
+import * as DocumentPicker from "expo-document-picker";
+import * as ImagePicker from "expo-image-picker";
+import type { LocalAttachmentInput } from "../services/storageService";
+
 type TransactionType = "expense" | "income";
 type AddTransactionRouteProp = RouteProp<RootStackParamList, "AddTransaction">;
 
@@ -121,6 +125,9 @@ export default function AddTransaction() {
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
+  const [attachment, setAttachment] = useState<LocalAttachmentInput | null>(
+    null,
+  );
 
   const categories = useMemo(() => {
     return form.type === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
@@ -180,21 +187,14 @@ export default function AddTransaction() {
   }
 
   async function handleSave() {
-    Alert.alert("Debug", "Entrou no handleSave");
-
-    debugger;
-
     const isFormValid = validateForm();
 
     if (!isFormValid) {
-      Alert.alert("Validação", "O formulário não passou na validação.");
       return;
     }
 
     try {
       setLoading(true);
-
-      Alert.alert("Debug", "Vai chamar addTransaction");
 
       const payload = {
         type: form.type,
@@ -203,6 +203,7 @@ export default function AddTransaction() {
         description: form.description.trim(),
         date: parseDate(form.date),
         account: form.account.trim(),
+        attachment,
       };
 
       await addTransaction(payload);
@@ -218,6 +219,63 @@ export default function AddTransaction() {
       );
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handlePickDocument() {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        copyToCacheDirectory: true,
+        type: ["application/pdf", "image/*"],
+      });
+
+      if (result.canceled) return;
+
+      const asset = result.assets[0];
+
+      setAttachment({
+        uri: asset.uri,
+        name: asset.name,
+        mimeType: asset.mimeType ?? "application/octet-stream",
+      });
+    } catch (error) {
+      console.error("Erro ao selecionar arquivo:", error);
+      Alert.alert("Erro", "Não foi possível selecionar o arquivo.");
+    }
+  }
+
+  async function handlePickImage() {
+    try {
+      if (Platform.OS !== "web") {
+        const permission =
+          await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+        if (!permission.granted) {
+          Alert.alert(
+            "Permissão necessária",
+            "Permita acesso às fotos para anexar uma imagem.",
+          );
+          return;
+        }
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"] as any,
+        quality: 0.8,
+      });
+
+      if (result.canceled) return;
+
+      const asset = result.assets[0];
+
+      setAttachment({
+        uri: asset.uri,
+        name: asset.fileName ?? `foto-${Date.now()}.jpg`,
+        mimeType: asset.mimeType ?? "image/jpeg",
+      });
+    } catch (error) {
+      console.error("Erro ao selecionar imagem:", error);
+      Alert.alert("Erro", "Não foi possível selecionar a imagem.");
     }
   }
 
@@ -358,12 +416,57 @@ export default function AddTransaction() {
             Deixe em branco para usar a conta padrão
           </Text>
 
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>Anexo (opcional)</Text>
+
+            <View style={styles.attachmentActions}>
+              <TouchableOpacity
+                style={styles.attachmentBtn}
+                onPress={handlePickImage}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="image-outline" size={16} color="#E2E8F0" />
+                <Text style={styles.attachmentBtnText}>Foto</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.attachmentBtn}
+                onPress={handlePickDocument}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="document-outline" size={16} color="#E2E8F0" />
+                <Text style={styles.attachmentBtnText}>Arquivo</Text>
+              </TouchableOpacity>
+            </View>
+
+            {attachment ? (
+              <View style={styles.attachmentCard}>
+                <Ionicons
+                  name={
+                    attachment.mimeType?.startsWith("image/")
+                      ? "image-outline"
+                      : "document-text-outline"
+                  }
+                  size={18}
+                  color="#94A3B8"
+                />
+                <Text style={styles.attachmentName} numberOfLines={1}>
+                  {attachment.name}
+                </Text>
+                <TouchableOpacity onPress={() => setAttachment(null)}>
+                  <Ionicons name="close" size={16} color="#94A3B8" />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <Text style={styles.hint}>
+                Adicione uma foto ou um PDF à transação
+              </Text>
+            )}
+          </View>
+
           <Button
             title="Salvar transação"
-            onPress={() => {
-              Alert.alert("Teste", "Botão clicado");
-              handleSave();
-            }}
+            onPress={handleSave}
             loading={loading}
             style={styles.saveButton}
           />
@@ -495,5 +598,44 @@ const styles = StyleSheet.create({
   saveButton: {
     marginTop: 8,
     marginBottom: 4,
+  },
+  attachmentActions: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 10,
+  },
+  attachmentBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#1D2A44",
+    borderWidth: 1,
+    borderColor: "#334155",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  attachmentBtnText: {
+    color: COLORS.text,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  attachmentCard: {
+    minHeight: 44,
+    borderRadius: 12,
+    backgroundColor: "#1D2A44",
+    borderWidth: 1,
+    borderColor: "#334155",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 12,
+  },
+  attachmentName: {
+    flex: 1,
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: "500",
   },
 });

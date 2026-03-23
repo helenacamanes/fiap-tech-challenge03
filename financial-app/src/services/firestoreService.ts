@@ -1,5 +1,4 @@
 import {
-  addDoc,
   collection,
   deleteDoc,
   doc,
@@ -15,6 +14,11 @@ import {
 import { auth, db } from "./firebaseConfig";
 import { Transaction } from "../@types/transaction";
 import type { UserProfile } from "../@types/finance";
+import {
+  deleteAttachmentByPath,
+  uploadTransactionAttachment,
+  type LocalAttachmentInput,
+} from "./storageService";
 
 function getCurrentUserId() {
   const uid = auth.currentUser?.uid;
@@ -41,6 +45,7 @@ export type CreateTransactionInput = {
   description: string;
   date: Date;
   account?: string;
+  attachment?: LocalAttachmentInput | null;
 };
 
 export type UpdateTransactionInput = {
@@ -67,8 +72,13 @@ async function ensureUserRootDoc(uid: string) {
 
 export async function createTransaction(data: CreateTransactionInput) {
   const uid = getCurrentUserId();
+  const transactionRef = doc(getTransactionsCollection(uid));
 
-  const transactionPayload = {
+  let uploadedAttachment: Awaited<
+    ReturnType<typeof uploadTransactionAttachment>
+  > | null = null;
+
+  const transactionPayloadBase = {
     type: data.type,
     amount: data.amount,
     category: data.category,
@@ -86,9 +96,30 @@ export async function createTransaction(data: CreateTransactionInput) {
 
   try {
     await ensureUserRootDoc(uid);
-    await addDoc(getTransactionsCollection(uid), transactionPayload);
+
+    if (data.attachment) {
+      uploadedAttachment = await uploadTransactionAttachment(
+        uid,
+        transactionRef.id,
+        data.attachment,
+      );
+    }
+
+    await setDoc(transactionRef, {
+      ...transactionPayloadBase,
+      attachment: uploadedAttachment,
+    });
+
     await setDoc(getUserRef(uid), profilePayload, { merge: true });
   } catch (error) {
+    if (uploadedAttachment?.path) {
+      try {
+        await deleteAttachmentByPath(uploadedAttachment.path);
+      } catch (cleanupError) {
+        console.error("Erro ao limpar anexo após falha:", cleanupError);
+      }
+    }
+
     console.error("Erro dentro de createTransaction:", error);
     throw error;
   }
@@ -108,7 +139,6 @@ export async function updateTransactionInFirestore(
       : -previousTransaction.value;
 
   const newSignedValue = data.type === "income" ? data.amount : -data.amount;
-
   const balanceDelta = newSignedValue - previousSignedValue;
 
   await updateDoc(transactionRef, {
@@ -151,6 +181,7 @@ export function subscribeToTransactions(
           date: data.date?.toDate?.() ?? new Date(),
           description: data.description ?? "",
           account: data.account ?? "",
+          attachment: data.attachment ?? null,
         };
       });
 
@@ -165,6 +196,14 @@ export function subscribeToTransactions(
 
 export async function removeTransactionFromFirestore(transaction: Transaction) {
   const uid = getCurrentUserId();
+
+  if (transaction.attachment?.path) {
+    try {
+      await deleteAttachmentByPath(transaction.attachment.path);
+    } catch (error) {
+      console.error("Erro ao excluir anexo da transação:", error);
+    }
+  }
 
   await deleteDoc(doc(db, "users", uid, "transactions", transaction.id));
 

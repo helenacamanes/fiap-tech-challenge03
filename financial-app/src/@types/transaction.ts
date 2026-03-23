@@ -1,3 +1,10 @@
+export type TransactionAttachment = {
+  url: string;
+  path: string;
+  name: string;
+  contentType?: string | null;
+};
+
 export type Transaction = {
   id: string;
   title: string;
@@ -6,4 +13,5 @@ export type Transaction = {
   date: Date;
   description?: string;
   account?: string;
+  attachment?: TransactionAttachment | null;
 };

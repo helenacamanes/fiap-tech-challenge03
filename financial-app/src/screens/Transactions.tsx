@@ -12,6 +12,8 @@ import {
   Platform,
   ScrollView,
   Alert,
+  Image,
+  Linking,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -317,6 +319,17 @@ export default function Transactions() {
     }
   }
 
+  async function handleOpenAttachment() {
+    if (!selectedTransaction?.attachment?.url) return;
+
+    try {
+      await Linking.openURL(selectedTransaction.attachment.url);
+    } catch (error) {
+      console.error("Erro ao abrir anexo:", error);
+      Alert.alert("Erro", "Não foi possível abrir o anexo.");
+    }
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -535,6 +548,37 @@ export default function Transactions() {
                   <Text style={styles.detailValue}>
                     {selectedTransaction.description || "Sem descrição"}
                   </Text>
+                </View>
+
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Anexo</Text>
+
+                  {selectedTransaction.attachment ? (
+                    <>
+                      <Text style={styles.detailValue}>
+                        {selectedTransaction.attachment.name}
+                      </Text>
+
+                      {selectedTransaction.attachment.contentType?.startsWith(
+                        "image/",
+                      ) ? (
+                        <Image
+                          source={{ uri: selectedTransaction.attachment.url }}
+                          style={styles.attachmentPreview}
+                          resizeMode="cover"
+                        />
+                      ) : null}
+
+                      <TouchableOpacity
+                        style={styles.modalPrimaryBtnFull}
+                        onPress={handleOpenAttachment}
+                      >
+                        <Text style={styles.modalConfirmText}>Abrir anexo</Text>
+                      </TouchableOpacity>
+                    </>
+                  ) : (
+                    <Text style={styles.detailValue}>Sem anexo</Text>
+                  )}
                 </View>
 
                 <TouchableOpacity
@@ -1038,5 +1082,12 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "700",
     fontSize: 14,
+  },
+  attachmentPreview: {
+    width: "100%",
+    height: 180,
+    borderRadius: 12,
+    marginTop: 10,
+    marginBottom: 10,
   },
 });

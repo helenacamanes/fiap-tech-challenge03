@@ -7,6 +7,7 @@ import {
   updateTransactionInFirestore,
   type CreateTransactionInput,
 } from "../services/firestoreService";
+import { useAuth } from "./AuthContext";
 
 type TransactionContextData = {
   transactions: Transaction[];
@@ -27,21 +28,28 @@ export function TransactionProvider({
 }: {
   children: React.ReactNode;
 }) {
+  const { user } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
   useEffect(() => {
+    if (!user?.uid) {
+      setTransactions([]);
+      return;
+    }
+
     let unsubscribe: undefined | (() => void);
 
     try {
       unsubscribe = subscribeToTransactions(setTransactions);
     } catch (error) {
       console.error("Erro ao assinar transações:", error);
+      setTransactions([]);
     }
 
     return () => {
       unsubscribe?.();
     };
-  }, []);
+  }, [user?.uid]);
 
   async function addTransaction(transaction: CreateTransactionInput) {
     await createTransaction(transaction);
