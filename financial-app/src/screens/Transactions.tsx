@@ -21,7 +21,7 @@ import { z } from "zod";
 import { useTransactions } from "../contexts/TransactionContext";
 import type { Transaction } from "../@types/transaction";
 
-type FilterPeriod = "Dia" | "Semana" | "Mês";
+type FilterPeriod = "Dia" | "Semana" | "Mês" | "Todos";
 
 function parseCurrencyInput(value: string) {
   return Number(value.replace(/\./g, "").replace(",", "."));
@@ -159,12 +159,16 @@ export default function Transactions() {
   const [editErrors, setEditErrors] = useState<EditFormErrors>({});
   const [editLoading, setEditLoading] = useState(false);
 
-  const PERIODS: FilterPeriod[] = ["Dia", "Semana", "Mês"];
+  const PERIODS: FilterPeriod[] = ["Dia", "Semana", "Mês", "Todos"];
 
   const periodFilteredTransactions = useMemo(() => {
     const today = getStartOfToday();
     const weekStart = getStartOfWeek();
     const now = new Date();
+
+    if (period === "Todos") {
+      return transactions;
+    }
 
     return transactions.filter((transaction) => {
       const transactionDate = new Date(transaction.date);
@@ -383,7 +387,9 @@ export default function Transactions() {
 
         <View style={styles.totalsRow}>
           <View>
-            <Text style={styles.totalLabel}>Total do período</Text>
+            <Text style={styles.totalLabel}>
+              {period === "Todos" ? "Total geral" : "Total do período"}
+            </Text>
             <Text style={styles.totalBalance}>
               {formatCurrency(totals.balance)}
             </Text>
@@ -805,6 +811,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     marginBottom: 16,
+    flexWrap: "wrap",
   },
   periodBtn: {
     paddingHorizontal: 14,
