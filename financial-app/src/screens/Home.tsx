@@ -15,10 +15,30 @@ import { TransactionItem } from "../components/TransactionItem";
 import { exportToPDF } from "../services/exportService";
 import { useTransactions } from "../contexts/TransactionContext";
 import { RootStackParamList } from "../@types/navigation";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function Home() {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { transactions } = useTransactions();
+
+  const { user } = useAuth();
+
+  const firstName = useMemo(() => {
+    const displayName = user?.displayName?.trim();
+
+    if (displayName) {
+      return displayName.split(/\s+/)[0];
+    }
+
+    const emailName = user?.email?.split("@")[0]?.trim();
+
+    if (emailName) {
+      return emailName.charAt(0).toUpperCase() + emailName.slice(1);
+    }
+
+    return "Usuário";
+  }, [user]);
 
   const totals = useMemo(() => {
     const income = transactions
@@ -40,9 +60,8 @@ export default function Home() {
     exportToPDF(transactions, "Março");
   };
 
-  const savings = totals.income > 0
-    ? ((totals.total / totals.income) * 100).toFixed(0)
-    : "0";
+  const savings =
+    totals.income > 0 ? ((totals.total / totals.income) * 100).toFixed(0) : "0";
 
   return (
     <SafeAreaView style={styles.container}>
@@ -57,12 +76,19 @@ export default function Home() {
           <>
             <View style={styles.header}>
               <View>
-                <Text style={styles.greeting}>Boa noite, Larissa</Text>
+                <Text style={styles.greeting}>Boa noite, {firstName}</Text>
                 <View style={styles.balanceRow}>
-                  <Ionicons name="eye-outline" size={13} color="#64748B" style={{ marginRight: 4 }} />
+                  <Ionicons
+                    name="eye-outline"
+                    size={13}
+                    color="#64748B"
+                    style={{ marginRight: 4 }}
+                  />
                   <Text style={styles.balanceSubtitle}>Saldo disponível</Text>
                 </View>
-                <Text style={styles.balanceValue}>{formatCurrency(totals.total)}</Text>
+                <Text style={styles.balanceValue}>
+                  {formatCurrency(totals.total)}
+                </Text>
               </View>
               <TouchableOpacity
                 style={styles.avatarBtn}
@@ -73,13 +99,24 @@ export default function Home() {
             </View>
 
             <View style={styles.actionRow}>
-              <TouchableOpacity onPress={() => navigation.navigate("AddTransaction", { type: "expense" })}
-                style={styles.actionBtn}>
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate("AddTransaction", { type: "expense" })
+                }
+                style={styles.actionBtn}
+              >
                 <Ionicons name="add" size={22} color="#FFFFFF" />
                 <Text style={styles.actionLabel}>Adicionar</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate("Insights")}>
-                <Ionicons name="document-text-outline" size={22} color="#FFFFFF" />
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() => navigation.navigate("Insights")}
+              >
+                <Ionicons
+                  name="document-text-outline"
+                  size={22}
+                  color="#FFFFFF"
+                />
                 <Text style={styles.actionLabel}>Relatórios</Text>
               </TouchableOpacity>
             </View>
@@ -117,7 +154,12 @@ export default function Home() {
 
               <View style={styles.savingsCard}>
                 <Text style={styles.statCardLabel}>Economia</Text>
-                <Text style={[styles.statCardValue, { color: "#4ADE80", fontSize: 22 }]}>
+                <Text
+                  style={[
+                    styles.statCardValue,
+                    { color: "#4ADE80", fontSize: 22 },
+                  ]}
+                >
                   {formatCurrency(totals.total)}
                 </Text>
                 <View style={styles.statTrend}>
@@ -131,7 +173,9 @@ export default function Home() {
 
             <View style={styles.listHeader}>
               <Text style={styles.sectionTitle}>Transações recentes</Text>
-              <TouchableOpacity onPress={() => navigation.navigate("Transactions")}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("Transactions")}
+              >
                 <Text style={styles.seeAll}>Ver todas</Text>
               </TouchableOpacity>
             </View>
@@ -161,7 +205,9 @@ export default function Home() {
             <Text
               style={[
                 styles.transactionValue,
-                item.type === "income" ? styles.valueIncome : styles.valueExpense,
+                item.type === "income"
+                  ? styles.valueIncome
+                  : styles.valueExpense,
               ]}
             >
               {item.type === "income" ? "+ " : "- "}
@@ -178,10 +224,13 @@ export default function Home() {
 
 function getCategoryIcon(title: string): any {
   const t = title.toLowerCase();
-  if (t.includes("mercado") || t.includes("supermercado")) return "cart-outline";
+  if (t.includes("mercado") || t.includes("supermercado"))
+    return "cart-outline";
   if (t.includes("uber") || t.includes("taxi")) return "car-outline";
-  if (t.includes("netflix") || t.includes("spotify")) return "play-circle-outline";
-  if (t.includes("ifood") || t.includes("restaurante")) return "fast-food-outline";
+  if (t.includes("netflix") || t.includes("spotify"))
+    return "play-circle-outline";
+  if (t.includes("ifood") || t.includes("restaurante"))
+    return "fast-food-outline";
   if (t.includes("farmácia") || t.includes("farmacia")) return "medkit-outline";
   if (t.includes("ginásio") || t.includes("academia")) return "barbell-outline";
   return "receipt-outline";
