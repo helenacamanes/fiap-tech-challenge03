@@ -76,7 +76,7 @@ export default function Home() {
           <>
             <View style={styles.header}>
               <View>
-                <Text style={styles.greeting}>Boa noite, {firstName}</Text>
+                <Text style={styles.greeting}>Olá, {firstName}</Text>
                 <View style={styles.balanceRow}>
                   <Ionicons
                     name="eye-outline"
