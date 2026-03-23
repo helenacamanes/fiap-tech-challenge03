@@ -12,37 +12,132 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { z } from "zod";
 import { useGoals, Goal } from "../contexts/GoalsContext";
 
 const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+  new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(value);
 
 const getPercent = (current: number, target: number) =>
   Math.min(Math.round((current / target) * 100), 100);
+
+function parseCurrencyInput(value: string) {
+  return Number(value.replace(/\./g, "").replace(",", "."));
+}
+
+function maskCurrencyInput(value: string) {
+  const digits = value.replace(/\D/g, "");
+
+  if (!digits) return "";
+
+  const number = Number(digits) / 100;
+
+  return number.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+const createGoalSchema = z.object({
+  title: z.string().trim().min(1, "Informe o nome da meta"),
+  target: z
+    .string()
+    .trim()
+    .min(1, "Informe o valor alvo")
+    .refine((value) => {
+      const parsed = parseCurrencyInput(value);
+      return !isNaN(parsed) && parsed > 0;
+    }, "Informe um valor alvo válido"),
+  initial: z
+    .string()
+    .trim()
+    .optional()
+    .refine((value) => {
+      if (!value) return true;
+      const parsed = parseCurrencyInput(value);
+      return !isNaN(parsed) && parsed >= 0;
+    }, "Informe um valor inicial válido"),
+});
+
+const addValueSchema = z.object({
+  value: z
+    .string()
+    .trim()
+    .min(1, "Informe o valor")
+    .refine((value) => {
+      const parsed = parseCurrencyInput(value);
+      return !isNaN(parsed) && parsed > 0;
+    }, "Informe um valor válido"),
+});
+
+type CreateGoalErrors = {
+  title?: string;
+  target?: string;
+  initial?: string;
+};
+
+type AddValueErrors = {
+  value?: string;
+};
 
 function AddGoalSheet({ onClose }: { onClose: () => void }) {
   const { addGoal } = useGoals();
   const [title, setTitle] = useState("");
   const [target, setTarget] = useState("");
   const [initial, setInitial] = useState("");
+  const [errors, setErrors] = useState<CreateGoalErrors>({});
+  const [loading, setLoading] = useState(false);
 
-  const isValid = title.trim().length > 0 && target.trim().length > 0;
+  async function handleCreate() {
+    const result = createGoalSchema.safeParse({ title, target, initial });
 
-  function handleCreate() {
-    const targetValue = parseFloat(target.replace(",", "."));
-    const initialValue = parseFloat(initial.replace(",", ".")) || 0;
-    if (!isValid || isNaN(targetValue) || targetValue <= 0) return;
+    if (!result.success) {
+      const fieldErrors: CreateGoalErrors = {};
 
-    addGoal({
-      title: title.trim(),
-      target: targetValue,
-      current: initialValue,
-      icon: "star-outline",
-      color: "#3B82F6",
-    });
-    onClose();
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as keyof CreateGoalErrors;
+        if (!fieldErrors[field]) {
+          fieldErrors[field] = issue.message;
+        }
+      }
+
+      setErrors(fieldErrors);
+      return;
+    }
+
+    try {
+      setErrors({});
+      setLoading(true);
+
+      const targetValue = parseCurrencyInput(target);
+      const initialValue = initial.trim() ? parseCurrencyInput(initial) : 0;
+
+      await addGoal({
+        title: title.trim(),
+        target: targetValue,
+        current: initialValue,
+        icon: "star-outline",
+        color: "#3B82F6",
+      });
+
+      onClose();
+    } catch (error) {
+      console.error("Erro ao criar meta:", error);
+      Alert.alert(
+        "Erro ao criar meta",
+        error instanceof Error
+          ? error.message
+          : "Não foi possível criar a meta.",
+      );
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -62,33 +157,66 @@ function AddGoalSheet({ onClose }: { onClose: () => void }) {
       >
         <Text style={styles.fieldLabel}>Nome da meta</Text>
         <TextInput
-          style={styles.modalInput}
+          style={[
+            styles.modalInput,
+            errors.title ? styles.modalInputError : undefined,
+          ]}
           placeholder="Ex: Viagem dos sonhos"
           placeholderTextColor="#475569"
           value={title}
-          onChangeText={setTitle}
+          onChangeText={(text) => {
+            setTitle(text);
+            if (errors.title) {
+              setErrors((prev) => ({ ...prev, title: undefined }));
+            }
+          }}
           autoFocus
         />
+        {errors.title ? (
+          <Text style={styles.errorText}>{errors.title}</Text>
+        ) : null}
 
         <Text style={styles.fieldLabel}>Valor alvo</Text>
         <TextInput
-          style={styles.modalInput}
-          placeholder="Ex: 10000"
+          style={[
+            styles.modalInput,
+            errors.target ? styles.modalInputError : undefined,
+          ]}
+          placeholder="Ex: 10.000,00"
           placeholderTextColor="#475569"
           keyboardType="numeric"
           value={target}
-          onChangeText={setTarget}
+          onChangeText={(text) => {
+            setTarget(maskCurrencyInput(text));
+            if (errors.target) {
+              setErrors((prev) => ({ ...prev, target: undefined }));
+            }
+          }}
         />
+        {errors.target ? (
+          <Text style={styles.errorText}>{errors.target}</Text>
+        ) : null}
 
         <Text style={styles.fieldLabel}>Valor inicial (opcional)</Text>
         <TextInput
-          style={styles.modalInput}
+          style={[
+            styles.modalInput,
+            errors.initial ? styles.modalInputError : undefined,
+          ]}
           placeholder="Quanto você já tem?"
           placeholderTextColor="#475569"
           keyboardType="numeric"
           value={initial}
-          onChangeText={setInitial}
+          onChangeText={(text) => {
+            setInitial(maskCurrencyInput(text));
+            if (errors.initial) {
+              setErrors((prev) => ({ ...prev, initial: undefined }));
+            }
+          }}
         />
+        {errors.initial ? (
+          <Text style={styles.errorText}>{errors.initial}</Text>
+        ) : null}
 
         <View style={styles.modalActions}>
           <TouchableOpacity style={styles.modalCancelBtn} onPress={onClose}>
@@ -97,12 +225,14 @@ function AddGoalSheet({ onClose }: { onClose: () => void }) {
           <TouchableOpacity
             style={[
               styles.modalConfirmBtn,
-              !isValid && styles.modalConfirmBtnDisabled,
+              loading && styles.modalConfirmBtnDisabled,
             ]}
             onPress={handleCreate}
-            disabled={!isValid}
+            disabled={loading}
           >
-            <Text style={styles.modalConfirmText}>Criar meta</Text>
+            <Text style={styles.modalConfirmText}>
+              {loading ? "Criando..." : "Criar meta"}
+            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -110,21 +240,31 @@ function AddGoalSheet({ onClose }: { onClose: () => void }) {
   );
 }
 
-function GoalCard({ goal, onAdd }: { goal: Goal; onAdd: (goal: Goal) => void }) {
+function GoalCard({
+  goal,
+  onAdd,
+}: {
+  goal: Goal;
+  onAdd: (goal: Goal) => void;
+}) {
   const percent = getPercent(goal.current, goal.target);
   const remaining = goal.target - goal.current;
 
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <View style={[styles.iconWrapper, { backgroundColor: goal.color + "22" }]}>
+        <View
+          style={[styles.iconWrapper, { backgroundColor: goal.color + "22" }]}
+        >
           <Ionicons name={goal.icon as any} size={20} color={goal.color} />
         </View>
         <View style={styles.cardTitleBlock}>
           <Text style={styles.cardTitle}>{goal.title}</Text>
           <Text style={styles.cardValues}>
             {formatCurrency(goal.current)}{" "}
-            <Text style={styles.cardTarget}>de {formatCurrency(goal.target)}</Text>
+            <Text style={styles.cardTarget}>
+              de {formatCurrency(goal.target)}
+            </Text>
           </Text>
         </View>
       </View>
@@ -143,7 +283,9 @@ function GoalCard({ goal, onAdd }: { goal: Goal; onAdd: (goal: Goal) => void }) 
           {percent}% completo
         </Text>
         {remaining > 0 ? (
-          <Text style={styles.remainingText}>Faltam {formatCurrency(remaining)}</Text>
+          <Text style={styles.remainingText}>
+            Faltam {formatCurrency(remaining)}
+          </Text>
         ) : (
           <Text style={[styles.remainingText, { color: "#4ADE80" }]}>
             🎉 Meta atingida!
@@ -166,21 +308,48 @@ export default function Goals() {
   const [addModal, setAddModal] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [addValue, setAddValue] = useState("");
+  const [addErrors, setAddErrors] = useState<AddValueErrors>({});
+  const [addLoading, setAddLoading] = useState(false);
 
   const [newGoalModal, setNewGoalModal] = useState(false);
 
   function handleOpenAdd(goal: Goal) {
     setSelectedGoal(goal);
     setAddValue("");
+    setAddErrors({});
     setAddModal(true);
   }
 
-  function handleConfirmAdd() {
+  async function handleConfirmAdd() {
     if (!selectedGoal) return;
-    const amount = parseFloat(addValue.replace(",", "."));
-    if (isNaN(amount) || amount <= 0) return;
-    addValueToGoal(selectedGoal.id, amount);
-    setAddModal(false);
+
+    const result = addValueSchema.safeParse({ value: addValue });
+
+    if (!result.success) {
+      const issue = result.error.issues[0];
+      setAddErrors({ value: issue.message });
+      return;
+    }
+
+    try {
+      setAddErrors({});
+      setAddLoading(true);
+
+      const amount = parseCurrencyInput(addValue);
+      await addValueToGoal(selectedGoal.id, amount);
+
+      setAddModal(false);
+    } catch (error) {
+      console.error("Erro ao adicionar valor à meta:", error);
+      Alert.alert(
+        "Erro ao atualizar meta",
+        error instanceof Error
+          ? error.message
+          : "Não foi possível atualizar a meta.",
+      );
+    } finally {
+      setAddLoading(false);
+    }
   }
 
   return (
@@ -250,32 +419,46 @@ export default function Goals() {
                     style={[
                       styles.progressFill,
                       {
-                        width: `${getPercent(selectedGoal.current, selectedGoal.target)}%` as any,
+                        width:
+                          `${getPercent(selectedGoal.current, selectedGoal.target)}%` as any,
                         backgroundColor: selectedGoal.color,
                       },
                     ]}
                   />
                 </View>
                 <View style={styles.progressLabels}>
-                  <Text style={[styles.percentText, { color: selectedGoal.color }]}>
-                    {getPercent(selectedGoal.current, selectedGoal.target)}% completo
+                  <Text
+                    style={[styles.percentText, { color: selectedGoal.color }]}
+                  >
+                    {getPercent(selectedGoal.current, selectedGoal.target)}%
+                    completo
                   </Text>
                   <Text style={styles.remainingText}>
-                    Faltam {formatCurrency(selectedGoal.target - selectedGoal.current)}
+                    Faltam{" "}
+                    {formatCurrency(selectedGoal.target - selectedGoal.current)}
                   </Text>
                 </View>
               </View>
             )}
 
             <TextInput
-              style={styles.modalInput}
+              style={[
+                styles.modalInput,
+                addErrors.value ? styles.modalInputError : undefined,
+              ]}
               placeholder="R$ 0,00"
               placeholderTextColor="#475569"
               keyboardType="numeric"
               value={addValue}
-              onChangeText={setAddValue}
+              onChangeText={(text) => {
+                setAddValue(maskCurrencyInput(text));
+                if (addErrors.value) setAddErrors({});
+              }}
               autoFocus
             />
+            {addErrors.value ? (
+              <Text style={styles.errorText}>{addErrors.value}</Text>
+            ) : null}
 
             <View style={styles.modalActions}>
               <TouchableOpacity
@@ -287,13 +470,14 @@ export default function Goals() {
               <TouchableOpacity
                 style={[
                   styles.modalConfirmBtn,
-                  (!addValue || parseFloat(addValue) <= 0) &&
-                    styles.modalConfirmBtnDisabled,
+                  addLoading && styles.modalConfirmBtnDisabled,
                 ]}
                 onPress={handleConfirmAdd}
-                disabled={!addValue || parseFloat(addValue) <= 0}
+                disabled={addLoading}
               >
-                <Text style={styles.modalConfirmText}>Confirmar</Text>
+                <Text style={styles.modalConfirmText}>
+                  {addLoading ? "Confirmando..." : "Confirmar"}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -504,6 +688,15 @@ const styles = StyleSheet.create({
     color: "#F1F5F9",
     fontSize: 15,
     marginBottom: 4,
+  },
+  modalInputError: {
+    borderColor: "#EF4444",
+  },
+  errorText: {
+    marginTop: 4,
+    marginBottom: 4,
+    fontSize: 12,
+    color: "#EF4444",
   },
   modalActions: {
     flexDirection: "row",
