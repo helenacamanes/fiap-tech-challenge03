@@ -7,14 +7,11 @@ import {
   TouchableOpacity,
   StatusBar,
   ScrollView,
-  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useTransactions } from "../contexts/TransactionContext";
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const CHART_WIDTH = SCREEN_WIDTH - 64;
+import Svg, { Circle, G } from "react-native-svg";
 
 type CategoryTotal = {
   label: string;
@@ -26,12 +23,17 @@ type CategoryTotal = {
 const CATEGORY_COLORS: Record<string, { color: string; icon: string }> = {
   Mercado: { color: "#3B82F6", icon: "cart-outline" },
   Transporte: { color: "#8B5CF6", icon: "car-outline" },
+  Moradia: { color: "#F97316", icon: "home-outline" },
   Alimentação: { color: "#F59E0B", icon: "fast-food-outline" },
   Lazer: { color: "#10B981", icon: "game-controller-outline" },
   Tecnologia: { color: "#06B6D4", icon: "laptop-outline" },
   Saúde: { color: "#EF4444", icon: "medkit-outline" },
-  Moradia: { color: "#F97316", icon: "home-outline" },
-  Outros: { color: "#64748B", icon: "ellipsis-horizontal-outline" },
+  Educação: { color: "#6366F1", icon: "school-outline" },
+  Salário: { color: "#22C55E", icon: "cash-outline" },
+  Assinaturas: { color: "#EC4899", icon: "repeat-outline" },
+  Pets: { color: "#F43F5E", icon: "paw-outline" },
+  Viagem: { color: "#14B8A6", icon: "airplane-outline" },
+  Outros: { color: "#A855F7", icon: "ellipsis-horizontal-outline" },
 };
 
 const MONTHS = [
@@ -50,62 +52,76 @@ const MONTHS = [
 ];
 
 const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
-    value,
-  );
+  new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(value);
 
 function DonutChart({ categories }: { categories: CategoryTotal[] }) {
   const total = categories.reduce((acc, c) => acc + c.value, 0);
+
   const SIZE = 160;
   const STROKE = 22;
   const RADIUS = (SIZE - STROKE) / 2;
   const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-  let accumulated = 0;
+  if (total <= 0) {
+    return (
+      <View style={donutStyles.container}>
+        <View
+          style={[
+            donutStyles.centerFallback,
+            { width: SIZE, height: SIZE, borderRadius: SIZE / 2 },
+          ]}
+        >
+          <Text style={donutStyles.centerLabel}>Total</Text>
+          <Text style={donutStyles.centerValue}>{formatCurrency(0)}</Text>
+        </View>
+      </View>
+    );
+  }
+
+  let accumulatedPercent = 0;
 
   return (
     <View style={donutStyles.container}>
-      <View
-        style={[
-          donutStyles.ring,
-          { width: SIZE, height: SIZE, borderRadius: SIZE / 2 },
-        ]}
-      >
-        <View
-          style={[
-            donutStyles.ringBase,
-            {
-              width: SIZE,
-              height: SIZE,
-              borderRadius: SIZE / 2,
-              borderWidth: STROKE,
-            },
-          ]}
-        />
-
-        {categories.map((cat, i) => {
-          const percent = cat.value / total;
-          const startAngle = accumulated * 360;
-          accumulated += percent;
-
-          return (
-            <View
-              key={cat.label}
-              style={[
-                donutStyles.segment,
-                {
-                  width: SIZE,
-                  height: SIZE,
-                  borderRadius: SIZE / 2,
-                  borderWidth: STROKE,
-                  borderColor: cat.color,
-                  transform: [{ rotate: `${startAngle}deg` }],
-                  opacity: percent > 0 ? 1 : 0,
-                },
-              ]}
+      <View style={{ width: SIZE, height: SIZE }}>
+        <Svg width={SIZE} height={SIZE}>
+          <G rotation="-90" origin={`${SIZE / 2}, ${SIZE / 2}`}>
+            <Circle
+              cx={SIZE / 2}
+              cy={SIZE / 2}
+              r={RADIUS}
+              stroke="#334155"
+              strokeWidth={STROKE}
+              fill="none"
             />
-          );
-        })}
+
+            {categories.map((cat) => {
+              const percent = cat.value / total;
+              const dash = percent * CIRCUMFERENCE;
+              const gapAdjustedDash = Math.max(dash - 3, 0);
+              const offset = CIRCUMFERENCE * (1 - accumulatedPercent);
+
+              accumulatedPercent += percent;
+
+              return (
+                <Circle
+                  key={cat.label}
+                  cx={SIZE / 2}
+                  cy={SIZE / 2}
+                  r={RADIUS}
+                  stroke={cat.color}
+                  strokeWidth={STROKE}
+                  fill="none"
+                  strokeLinecap="butt"
+                  strokeDasharray={`${gapAdjustedDash} ${CIRCUMFERENCE}`}
+                  strokeDashoffset={offset}
+                />
+              );
+            })}
+          </G>
+        </Svg>
 
         <View
           style={[
@@ -114,6 +130,8 @@ function DonutChart({ categories }: { categories: CategoryTotal[] }) {
               width: SIZE - STROKE * 2,
               height: SIZE - STROKE * 2,
               borderRadius: (SIZE - STROKE * 2) / 2,
+              top: STROKE,
+              left: STROKE,
             },
           ]}
         >
@@ -126,30 +144,35 @@ function DonutChart({ categories }: { categories: CategoryTotal[] }) {
 }
 
 const donutStyles = StyleSheet.create({
-  container: { alignItems: "center", justifyContent: "center" },
-  ring: {
+  container: {
     alignItems: "center",
     justifyContent: "center",
-    position: "relative",
-  },
-  ringBase: {
-    position: "absolute",
-    borderColor: "#1E293B",
-  },
-  segment: {
-    position: "absolute",
-    borderTopColor: "transparent",
-    borderRightColor: "transparent",
-    borderBottomColor: "transparent",
   },
   center: {
+    position: "absolute",
     backgroundColor: "#0F172A",
     alignItems: "center",
     justifyContent: "center",
-    zIndex: 10,
   },
-  centerLabel: { fontSize: 11, color: "#64748B", marginBottom: 2 },
-  centerValue: { fontSize: 13, fontWeight: "800", color: "#F1F5F9" },
+  centerFallback: {
+    backgroundColor: "#1E293B",
+    borderWidth: 22,
+    borderColor: "#334155",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  centerLabel: {
+    fontSize: 11,
+    color: "#64748B",
+    marginBottom: 2,
+  },
+  centerValue: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#F1F5F9",
+    textAlign: "center",
+    paddingHorizontal: 12,
+  },
 });
 
 function BarChart({
@@ -249,18 +272,32 @@ export default function Insights() {
   const currentYear = now.getFullYear();
 
   const biggestExpense = useMemo(() => {
-    const expenses = transactions.filter((t) => t.type === "expense");
+    const expenses = transactions.filter((t) => {
+      const d = new Date(t.date);
+      return (
+        t.type === "expense" &&
+        d.getMonth() === currentMonth &&
+        d.getFullYear() === currentYear
+      );
+    });
+
     if (!expenses.length) return null;
+
     return expenses.reduce(
       (max, t) => (t.value > max.value ? t : max),
       expenses[0],
     );
-  }, [transactions]);
+  }, [transactions, currentMonth, currentYear]);
 
   const categoryTotals = useMemo((): CategoryTotal[] => {
     const map: Record<string, number> = {};
+
     transactions
-      .filter((t) => t.type === "expense")
+      .filter((t) => {
+        if (t.type !== "expense") return false;
+        const d = new Date(t.date);
+        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+      })
       .forEach((t) => {
         map[t.title] = (map[t.title] || 0) + t.value;
       });
@@ -273,7 +310,7 @@ export default function Insights() {
         icon: CATEGORY_COLORS[label]?.icon ?? "receipt-outline",
       }))
       .sort((a, b) => b.value - a.value);
-  }, [transactions]);
+  }, [transactions, currentMonth, currentYear]);
 
   const monthlyData = useMemo(() => {
     return Array.from({ length: 6 }, (_, i) => {
@@ -303,7 +340,7 @@ export default function Insights() {
 
       return { month: MONTHS[m], income, expense };
     });
-  }, [transactions]);
+  }, [transactions, currentMonth, currentYear]);
 
   const monthBalance = useMemo(() => {
     const income = transactions
@@ -316,6 +353,7 @@ export default function Insights() {
         );
       })
       .reduce((acc, t) => acc + t.value, 0);
+
     const expense = transactions
       .filter((t) => {
         const d = new Date(t.date);
@@ -326,10 +364,9 @@ export default function Insights() {
         );
       })
       .reduce((acc, t) => acc + t.value, 0);
-    return { income, expense, balance: income - expense };
-  }, [transactions]);
 
-  const totalExpense = categoryTotals.reduce((acc, c) => acc + c.value, 0);
+    return { income, expense, balance: income - expense };
+  }, [transactions, currentMonth, currentYear]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -367,6 +404,7 @@ export default function Insights() {
                 </Text>
               </Text>
             </View>
+
             {monthBalance.balance >= 0 ? (
               <View style={styles.insightRow}>
                 <View
@@ -433,7 +471,7 @@ export default function Insights() {
             </>
           ) : (
             <Text style={styles.emptyText}>
-              Nenhuma despesa registada este mês.
+              Nenhuma despesa registrada este mês.
             </Text>
           )}
         </View>
