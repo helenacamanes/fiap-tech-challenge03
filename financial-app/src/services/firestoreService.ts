@@ -10,6 +10,7 @@ import {
   serverTimestamp,
   setDoc,
   Timestamp,
+  updateDoc,
 } from "firebase/firestore";
 import { auth, db } from "./firebaseConfig";
 import { Transaction } from "../@types/transaction";
@@ -42,14 +43,14 @@ export type CreateTransactionInput = {
   account?: string;
 };
 
-export async function testRootWrite() {
-  const ref = await addDoc(collection(db, "debugWrites"), {
-    uid: auth.currentUser?.uid ?? null,
-    email: auth.currentUser?.email ?? "",
-    createdAt: serverTimestamp(),
-    source: "manual-test",
-  });
-}
+export type UpdateTransactionInput = {
+  type: "income" | "expense";
+  amount: number;
+  category: string;
+  description: string;
+  date: Date;
+  account?: string;
+};
 
 async function ensureUserRootDoc(uid: string) {
   await setDoc(
@@ -78,23 +79,56 @@ export async function createTransaction(data: CreateTransactionInput) {
     updatedAt: serverTimestamp(),
   };
 
+  const profilePayload = {
+    updatedAt: serverTimestamp(),
+    balance: increment(data.type === "income" ? data.amount : -data.amount),
+  };
+
   try {
     await ensureUserRootDoc(uid);
-    const ref = await addDoc(
-      getTransactionsCollection(uid),
-      transactionPayload,
-    );
-    await setDoc(
-      getUserRef(uid),
-      {
-        updatedAt: serverTimestamp(),
-        balance: increment(data.type === "income" ? data.amount : -data.amount),
-      },
-      { merge: true },
-    );
+    await addDoc(getTransactionsCollection(uid), transactionPayload);
+    await setDoc(getUserRef(uid), profilePayload, { merge: true });
   } catch (error) {
+    console.error("Erro dentro de createTransaction:", error);
     throw error;
   }
+}
+
+export async function updateTransactionInFirestore(
+  transactionId: string,
+  data: UpdateTransactionInput,
+  previousTransaction: Transaction,
+) {
+  const uid = getCurrentUserId();
+  const transactionRef = doc(db, "users", uid, "transactions", transactionId);
+
+  const previousSignedValue =
+    previousTransaction.type === "income"
+      ? previousTransaction.value
+      : -previousTransaction.value;
+
+  const newSignedValue = data.type === "income" ? data.amount : -data.amount;
+
+  const balanceDelta = newSignedValue - previousSignedValue;
+
+  await updateDoc(transactionRef, {
+    type: data.type,
+    amount: data.amount,
+    category: data.category,
+    description: data.description ?? "",
+    account: data.account ?? "",
+    date: Timestamp.fromDate(data.date),
+    updatedAt: serverTimestamp(),
+  });
+
+  await setDoc(
+    getUserRef(uid),
+    {
+      updatedAt: serverTimestamp(),
+      balance: increment(balanceDelta),
+    },
+    { merge: true },
+  );
 }
 
 export function subscribeToTransactions(
@@ -105,7 +139,6 @@ export function subscribeToTransactions(
 
   return onSnapshot(
     q,
-    { includeMetadataChanges: true },
     (snapshot) => {
       const transactions: Transaction[] = snapshot.docs.map((docItem) => {
         const data = docItem.data();
